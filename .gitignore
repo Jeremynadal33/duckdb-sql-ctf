@@ -1,0 +1,7 @@
+.env
+*/*.terraform*
+*/*/.venv/
+*/*/.pytest_cache/
+*/*/*.cpytyhon-*/ 
+*/**/__pycache__/
+terrform/.terraform/
