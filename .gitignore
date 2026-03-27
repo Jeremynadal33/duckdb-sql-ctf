@@ -5,3 +5,5 @@
 */*/*.cpytyhon-*/ 
 */**/__pycache__/
 terrform/.terraform/
+test/
+data_generator/output/
