@@ -58,3 +58,8 @@ output "pg_ro_password" {
   sensitive   = true
 }
 
+output "cloudfront_leaderboard_url" {
+  description = "CloudFront URL for leaderboard results"
+  value       = "https://${aws_cloudfront_distribution.leaderboard.domain_name}"
+}
+
