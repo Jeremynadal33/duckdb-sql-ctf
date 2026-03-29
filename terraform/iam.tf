@@ -49,7 +49,6 @@ resource "aws_iam_policy" "ctf_s3" {
         Sid    = "ReadWriteUserInputs"
         Effect = "Allow"
         Action = [
-          "s3:GetObject",
           "s3:PutObject"
         ]
         Resource = "${aws_s3_bucket.ctf.arn}/user-inputs/*"
@@ -72,4 +71,72 @@ resource "aws_iam_user_policy_attachment" "ctf_s3" {
 
 resource "aws_iam_access_key" "ctf" {
   user = aws_iam_user.ctf.name
+}
+
+# ──────────────────────────────────────────────
+# Lambda Answer Checker
+# ──────────────────────────────────────────────
+
+resource "aws_iam_role" "lambda_answer_checker" {
+  name = "${var.bucket_name}-lambda-answer-checker"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect    = "Allow"
+        Principal = { Service = "lambda.amazonaws.com" }
+        Action    = "sts:AssumeRole"
+      }
+    ]
+  })
+
+  tags = { Name = "${var.bucket_name}-lambda-answer-checker" }
+}
+
+resource "aws_iam_policy" "lambda_answer_checker_s3" {
+  name        = "${var.bucket_name}-lambda-answer-checker-s3"
+  description = "S3 access for answer checker Lambda"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "ListBucket"
+        Effect   = "Allow"
+        Action   = "s3:ListBucket"
+        Resource = aws_s3_bucket.ctf.arn
+      },
+      {
+        Sid    = "ReadUserInputs"
+        Effect = "Allow"
+        Action = "s3:GetObject"
+        Resource = [
+          "${aws_s3_bucket.ctf.arn}/user-inputs/*",
+          "${aws_s3_bucket.ctf.arn}/leaderboard/answers/*",
+        ]
+      },
+      {
+        Sid    = "WriteLeaderboardAndDLQ"
+        Effect = "Allow"
+        Action = "s3:PutObject"
+        Resource = [
+          "${aws_s3_bucket.ctf.arn}/leaderboard/dead-letter-queue/*",
+          "${aws_s3_bucket.ctf.arn}/leaderboard/results/*",
+        ]
+      }
+    ]
+  })
+
+  tags = { Name = "${var.bucket_name}-lambda-answer-checker-s3" }
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_answer_checker_s3" {
+  role       = aws_iam_role.lambda_answer_checker.name
+  policy_arn = aws_iam_policy.lambda_answer_checker_s3.arn
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_answer_checker_logs" {
+  role       = aws_iam_role.lambda_answer_checker.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }

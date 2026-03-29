@@ -33,3 +33,12 @@ psql "host=$(terraform output -raw db_endpoint | cut -d: -f1) port=5432 dbname=$
 - **Database**: PostgreSQL 16 on RDS (`db.t4g.micro`), publicly accessible on port 5432, inside a custom VPC with two public subnets
 - **Terraform layout**: `provider.tf` (backend + provider + default tags), `network.tf` (VPC/subnets/IGW/routes), `security.tf` (SG), `database.tf` (RDS), `variables.tf`, `outputs.tf`
 - **Credentials**: `pg_user` and `pg_password` are passed via `TF_VAR_*` env vars from `.env`
+
+## Flag Logic (dual maintenance required!)
+
+Flag construction logic lives in **two places that must stay in sync**:
+
+1. **Python generators** (`data_generator/src/data_generator/generators/`) — build flags and embed them in generated data (JSON logs, Parquet metadata, Postgres rows)
+2. **Terraform answer files** (`terraform/locals.tf` flags + `terraform/storage.tf` S3 objects) — upload expected flags to `s3://bucket/leaderboard/answers/scenario_{N}.txt` for the Lambda answer checker
+
+When modifying flag format or content for any scenario, **update both places** or the answer checker will reject correct submissions.
