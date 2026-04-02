@@ -34,17 +34,9 @@ output "iam_secret_access_key" {
   sensitive   = true
 }
 
-# Could use [managed password](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/db_instance#master_user_secret-1)
-# To avoid having to use an env var to input the password
 output "pg_user" {
   description = "PostgreSQL master username"
   value       = var.pg_user
-}
-
-output "pg_password" {
-  description = "PostgreSQL master password"
-  value       = var.pg_password
-  sensitive   = true
 }
 
 output "pg_ro_user" {
@@ -52,10 +44,14 @@ output "pg_ro_user" {
   value       = postgresql_role.readonly.name
 }
 
-output "pg_ro_password" {
-  description = "PostgreSQL read-only password"
-  value       = postgresql_role.readonly.password
-  sensitive   = true
+output "ssm_pg_master_password" {
+  description = "Chemin SSM du mot de passe master PostgreSQL"
+  value       = aws_ssm_parameter.pg_master_password.name
+}
+
+output "ssm_pg_readonly_password" {
+  description = "Chemin SSM du mot de passe read-only PostgreSQL"
+  value       = aws_ssm_parameter.pg_readonly_password.name
 }
 
 output "s3_results_url" {

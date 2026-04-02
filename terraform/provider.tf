@@ -8,10 +8,14 @@ terraform {
       source  = "cyrilgdn/postgresql"
       version = "~> 1.25"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.0"
+    }
   }
 
   backend "s3" {
-    bucket = "ippon-data-dev-tfstates-bucket"
+    bucket = "bg-lab-dev-tfstates-bucket"
     key    = "duckdb-sql-ctf/terraform.tfstate"
     region = "eu-west-1"
   }
@@ -22,7 +26,7 @@ provider "postgresql" {
   port      = aws_db_instance.ctf.port
   database  = aws_db_instance.ctf.db_name
   username  = var.pg_user
-  password  = var.pg_password
+  password  = random_password.pg_master.result
   sslmode   = "require"
   superuser = false
 }
@@ -32,8 +36,8 @@ provider "aws" {
 
   default_tags {
     tags = {
-      "ippon:owners"  = "jnadal@ippon.fr"
-      "ippon:project" = "duckdb-sql-ctf"
+      "bg:owners"  = "p.farey@betclicgroup.com"
+      "bg:project" = "duckdb-sql-ctf"
     }
   }
 }

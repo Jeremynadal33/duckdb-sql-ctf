@@ -14,12 +14,13 @@ def logs(
     output_dir: Path = typer.Option(
         Path("output"), help="Output directory for zip file"
     ),
+    dev: bool = typer.Option(False, "--dev", help="Utiliser une config locale sans Terraform"),
 ) -> None:
     """Scenario 1: Generate 500 JSON log files in a zip archive."""
-    from data_generator.config import load_config
+    from data_generator.config import dev_config, load_config
     from data_generator.generators.scenario1_logs import generate_logs
 
-    config = load_config("../terraform")
+    config = dev_config() if dev else load_config()
     path = generate_logs(config, output_dir)
     typer.echo(f"Generated: {path}")
 

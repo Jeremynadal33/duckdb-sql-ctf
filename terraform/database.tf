@@ -16,7 +16,7 @@ resource "aws_db_instance" "ctf" {
 
   db_name  = local.dbname
   username = var.pg_user
-  password = var.pg_password
+  password = random_password.pg_master.result
 
   db_subnet_group_name   = aws_db_subnet_group.ctf.name
   vpc_security_group_ids = [aws_security_group.db.id]
@@ -30,7 +30,7 @@ resource "aws_db_instance" "ctf" {
 resource "postgresql_role" "readonly" {
   name     = var.pg_ro_user
   login    = true
-  password = var.pg_ro_password
+  password = random_password.pg_readonly.result
 
   depends_on = [
     aws_db_instance.ctf,
