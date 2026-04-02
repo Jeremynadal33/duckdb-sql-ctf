@@ -1,23 +1,13 @@
 variable "pg_user" {
   description = "PostgreSQL master username"
   type        = string
-}
-
-variable "pg_password" {
-  description = "PostgreSQL master password"
-  type        = string
-  sensitive   = true
+  default     = "ctfadmin"
 }
 
 variable "pg_ro_user" {
   description = "PostgreSQL read-only username"
   type        = string
-}
-
-variable "pg_ro_password" {
-  description = "PostgreSQL read-only password"
-  type        = string
-  sensitive   = true
+  default     = "ctfplayer"
 }
 
 variable "aws_region" {

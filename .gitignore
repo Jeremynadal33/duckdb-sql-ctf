@@ -4,6 +4,7 @@
 */*/.pytest_cache/
 */*/*.cpytyhon-*/ 
 */**/__pycache__/
-terrform/.terraform/
+terrform/.terraform*/
 test/
 data_generator/output/
+.vscode/

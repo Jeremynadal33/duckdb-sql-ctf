@@ -4,7 +4,10 @@ import json
 import subprocess
 from pathlib import Path
 
+import boto3
 from pydantic import BaseModel, computed_field
+
+from data_generator.constants import AWS_REGION
 
 
 class CTFConfig(BaseModel):
@@ -50,6 +53,21 @@ def _get_tf_output_raw(name: str, terraform_dir: Path) -> str:
     return _run_terraform(["output", "-raw", name], terraform_dir)
 
 
+def dev_config() -> CTFConfig:
+    """Config factice pour le développement local sans infrastructure AWS."""
+    return CTFConfig(
+        db_endpoint="localhost:5432",
+        db_name="ctfdb",
+        pg_master_user="ctfadmin",
+        pg_master_password="dev-password",
+        pg_ro_user="ctfplayer",
+        pg_ro_password="dev-ro-password",
+        s3_bucket_name="duckdb-sql-ctf-dev",
+        iam_access_key_id="AKIAIOSFODNN7EXAMPLE",
+        iam_secret_access_key="dev-secret-key",
+    )
+
+
 def load_config(terraform_dir: Path | None = None) -> CTFConfig:
     """Load CTF configuration from terraform outputs."""
     if terraform_dir is None:
@@ -57,15 +75,23 @@ def load_config(terraform_dir: Path | None = None) -> CTFConfig:
 
     outputs = _get_tf_output_json(terraform_dir)
 
-    # Sensitive outputs must be fetched individually with -raw
-    pg_ro_password = _get_tf_output_raw("pg_ro_password", terraform_dir)
+    # Sensitive outputs : IAM secret key toujours via terraform -raw
     iam_secret_access_key = _get_tf_output_raw("iam_secret_access_key", terraform_dir)
+
+    # Passwords : récupérés depuis SSM (plus d'output Terraform pour les mots de passe)
+    ssm = boto3.client("ssm", region_name=AWS_REGION)
+    pg_master_password = ssm.get_parameter(
+        Name=outputs["ssm_pg_master_password"]["value"], WithDecryption=True
+    )["Parameter"]["Value"]
+    pg_ro_password = ssm.get_parameter(
+        Name=outputs["ssm_pg_readonly_password"]["value"], WithDecryption=True
+    )["Parameter"]["Value"]
 
     return CTFConfig(
         db_endpoint=outputs["db_endpoint"]["value"],
         db_name=outputs["db_name"]["value"],
         pg_master_user=outputs["pg_user"]["value"],
-        pg_master_password=outputs["pg_password"]["value"],
+        pg_master_password=pg_master_password,
         pg_ro_user=outputs["pg_ro_user"]["value"],
         pg_ro_password=pg_ro_password,
         s3_bucket_name=outputs["s3_bucket_name"]["value"],

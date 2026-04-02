@@ -8,6 +8,10 @@ terraform {
       source  = "cyrilgdn/postgresql"
       version = "~> 1.25"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.0"
+    }
   }
 
   backend "s3" {
@@ -22,7 +26,7 @@ provider "postgresql" {
   port      = aws_db_instance.ctf.port
   database  = aws_db_instance.ctf.db_name
   username  = var.pg_user
-  password  = var.pg_password
+  password  = random_password.pg_master.result
   sslmode   = "require"
   superuser = false
 }

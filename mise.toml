@@ -1,0 +1,111 @@
+[tools]
+python = "3.13"
+uv = "latest"
+terraform = "latest"
+duckdb = "latest"
+
+[env]
+_.file = { path = ".env", ignore_missing = true }
+
+# ===== Installation =====
+
+[tasks.install]
+description = "Installer les dépendances des deux composants"
+run = [
+    "uv sync --directory answer_checker",
+    "uv sync --directory data_generator",
+]
+
+# ===== Tests =====
+
+[tasks.test]
+description = "Lancer tous les tests"
+depends = ["test:answer-checker", "test:data-generator"]
+
+[tasks."test:answer-checker"]
+description = "Tests unitaires du Lambda answer_checker"
+dir = "answer_checker"
+run = "uv run pytest tests/ -v"
+
+[tasks."test:data-generator"]
+description = "Tests unitaires du générateur de données"
+dir = "data_generator"
+run = "uv run pytest tests/ -v"
+
+# ===== Génération des données =====
+
+[tasks."generate:logs"]
+description = "Générer l'archive library_logs.zip — scénario 1 (sans AWS)"
+dir = "data_generator"
+run = "uv run ctf-generate logs"
+
+[tasks."generate:logs-dev"]
+description = "Générer l'archive library_logs.zip en mode dev (sans Terraform)"
+dir = "data_generator"
+run = "uv run ctf-generate logs --dev"
+
+[tasks."generate:parquet"]
+description = "Générer et uploader les Parquet S3 — scénario 2 (requiert AWS)"
+dir = "data_generator"
+run = "uv run ctf-generate parquet --upload"
+
+[tasks."generate:postgres"]
+description = "Peupler la base PostgreSQL — scénario 3 (requiert RDS)"
+dir = "data_generator"
+run = "uv run ctf-generate postgres"
+
+[tasks."generate:all"]
+description = "Générer toutes les données et uploader (requiert AWS + RDS)"
+dir = "data_generator"
+run = "uv run ctf-generate all --upload"
+
+# ===== Terraform =====
+
+[tasks."tf:init"]
+description = "Initialiser Terraform (backend S3)"
+dir = "terraform"
+run = "terraform init"
+
+[tasks."tf:plan"]
+description = "Terraform plan"
+dir = "terraform"
+run = "terraform plan"
+
+[tasks."tf:apply"]
+description = "Terraform apply"
+dir = "terraform"
+run = "terraform apply"
+
+[tasks."tf:destroy"]
+description = "Terraform destroy — détruit tout sauf le bucket S3"
+dir = "terraform"
+run = """
+echo "=== Terraform state list ==="
+terraform state list
+TARGETS=$(terraform state list | grep -v '^aws_s3_bucket\\.ctf$' | sed 's/^/-target=/')
+if [ -z "$TARGETS" ]; then
+  echo "Rien à détruire."
+  exit 0
+fi
+echo ""
+echo "=== Resources to destroy ==="
+echo "$TARGETS"
+echo ""
+terraform destroy $TARGETS
+"""
+
+# ===== AWS =====
+
+[tasks."aws:login"]
+description = "Se connecter via AWS SSO (profil défini par AWS_PROFILE dans .env)"
+run = "aws sso login --profile $AWS_PROFILE"
+
+# ===== Site web =====
+
+[tasks.web]
+description = "Servir le site CTF en local sur http://localhost:8080"
+run = "python3 -m http.server 8080 --directory docs"
+
+[tasks."dev:data"]
+description = "Générer des résultats fictifs pour le leaderboard local"
+run = "uv run --with pyarrow python3 docs/dev-data/generate.py"

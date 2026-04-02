@@ -11,9 +11,52 @@ resource "aws_s3_bucket_public_access_block" "ctf" {
   bucket = aws_s3_bucket.ctf.id
 
   block_public_acls       = true
-  block_public_policy     = false # Allow bucket policy for CloudFront OAC
+  block_public_policy     = false # Allow public-read policy on results prefix
   ignore_public_acls      = true
-  restrict_public_buckets = false # Allow CloudFront OAC access
+  restrict_public_buckets = false # Allow public access to results prefix
+}
+
+# ── CORS for browser-based DuckDB-WASM httpfs access ──
+resource "aws_s3_bucket_cors_configuration" "ctf" {
+  bucket = aws_s3_bucket.ctf.id
+
+  cors_rule {
+    allowed_headers = ["*"]
+    allowed_methods = ["GET", "HEAD"]
+    allowed_origins = ["*"]
+    expose_headers  = ["ETag"]
+    max_age_seconds = 3600
+  }
+}
+
+# ── Public read-only access restricted to leaderboard/results/ ──
+resource "aws_s3_bucket_policy" "public_results" {
+  bucket = aws_s3_bucket.ctf.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid       = "PublicReadResults"
+        Effect    = "Allow"
+        Principal = "*"
+        Action    = "s3:GetObject"
+        Resource  = "${aws_s3_bucket.ctf.arn}/leaderboard/results/*"
+      },
+      {
+        Sid       = "PublicListResults"
+        Effect    = "Allow"
+        Principal = "*"
+        Action    = "s3:ListBucket"
+        Resource  = aws_s3_bucket.ctf.arn
+        Condition = {
+          StringLike = {
+            "s3:prefix" = ["leaderboard/results/*"]
+          }
+        }
+      }
+    ]
+  })
 }
 
 # ── Answer files for the Lambda checker ──

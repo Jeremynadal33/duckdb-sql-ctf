@@ -1,5 +1,6 @@
 from datetime import date
 
+AWS_REGION = "eu-west-1"
 FAKER_SEED = 42
 
 FIGURANT_NAMES = [

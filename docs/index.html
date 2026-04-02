@@ -11,21 +11,19 @@
     <h1>DuckDB SQL CTF — Leaderboard</h1>
     <div id="status">Loading DuckDB...</div>
     <table id="leaderboard">
-      <thead>
-        <tr>
-          <th>Rank</th>
-          <th>Player</th>
-          <th>Score</th>
-          <th>Scenario 1</th>
-          <th>Scenario 2</th>
-          <th>Scenario 3</th>
-          <th>Scenario 4</th>
-        </tr>
-      </thead>
+      <thead><tr></tr></thead>
       <tbody></tbody>
     </table>
     <p id="updated"></p>
+
+    <h2 style="margin-top:2.5rem;margin-bottom:1rem;font-size:1rem;font-weight:600;color:#8b949e;text-transform:uppercase;letter-spacing:.05em">Progression dans le temps</h2>
+    <div style="background:#161b22;border:1px solid #21262d;border-radius:8px;padding:1.25rem">
+      <canvas id="progress-chart"></canvas>
+    </div>
   </div>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/date-fns@3.6.0/cdn.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
   <script type="module" src="app.js"></script>
 </body>
 </html>
