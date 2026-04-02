@@ -52,3 +52,36 @@ table = pa.table(
 output_path = os.path.join(output_dir, "results.parquet")
 pq.write_table(table, output_path)
 print(f"{len(RESULTS)} résultats écrits dans {output_path}")
+
+# ── Locations (scénario 3) ────────────────────────────────────────────────────
+
+LOCATIONS = [
+    # (person, role, lat, lon, city, note)
+    ("Bibliothèque du Lac", "library", 48.8566,   2.3522,   "Paris",    "Point de départ — registres de prêts"),
+    ("Quackie Chan",        "target",  48.879226, 2.283274, "Paris",    "Domicile réel — coordonnées dans addresses (is_current=true)"),
+    ("Hugh Quackman",       "decoy",   44.837789, -0.579187,"Bordeaux", "Leurre — coordonnées du père dans addresses"),
+]
+
+loc_schema = pa.schema([
+    pa.field("person", pa.string()),
+    pa.field("role",   pa.string()),
+    pa.field("lat",    pa.float64()),
+    pa.field("lon",    pa.float64()),
+    pa.field("city",   pa.string()),
+    pa.field("note",   pa.string()),
+])
+
+loc_table = pa.table(
+    {
+        "person": [r[0] for r in LOCATIONS],
+        "role":   [r[1] for r in LOCATIONS],
+        "lat":    [r[2] for r in LOCATIONS],
+        "lon":    [r[3] for r in LOCATIONS],
+        "city":   [r[4] for r in LOCATIONS],
+        "note":   [r[5] for r in LOCATIONS],
+    },
+    schema=loc_schema,
+)
+loc_path = os.path.join(output_dir, "locations.parquet")
+pq.write_table(loc_table, loc_path)
+print(f"{len(LOCATIONS)} localisations écrites dans {loc_path}")

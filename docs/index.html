@@ -1,29 +1,375 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DuckDB SQL CTF — Leaderboard</title>
+  <title>Opération Canards Disparus — DuckDB CTF</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 </head>
 <body>
-  <div class="container">
-    <h1>DuckDB SQL CTF — Leaderboard</h1>
-    <div id="status">Loading DuckDB...</div>
-    <table id="leaderboard">
-      <thead><tr></tr></thead>
-      <tbody></tbody>
-    </table>
-    <p id="updated"></p>
+<div class="layout">
 
-    <h2 style="margin-top:2.5rem;margin-bottom:1rem;font-size:1rem;font-weight:600;color:#8b949e;text-transform:uppercase;letter-spacing:.05em">Progression dans le temps</h2>
-    <div style="background:#161b22;border:1px solid #21262d;border-radius:8px;padding:1.25rem">
-      <canvas id="progress-chart"></canvas>
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <span class="logo-duck">🦆</span>
+    <div class="logo-text">
+      <span class="logo-op">OPÉRATION</span>
+      <span class="logo-name">CANARDS</span>
+      <span class="logo-sub">DISPARUS</span>
     </div>
   </div>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/date-fns@3.6.0/cdn.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
-  <script type="module" src="app.js"></script>
+
+  <nav class="sidebar-nav">
+    <button class="nav-item active" data-tab="scenarios">
+      <span class="nav-icon">⬡</span>
+      <span>SCÉNARIOS</span>
+    </button>
+    <button class="nav-item" data-tab="leaderboard">
+      <span class="nav-icon">◈</span>
+      <span>LEADERBOARD</span>
+    </button>
+    <button class="nav-item" data-tab="map">
+      <span class="nav-icon">◉</span>
+      <span>CARTE</span>
+    </button>
+  </nav>
+
+  <div class="sidebar-footer">
+    <span id="status" class="sidebar-status"></span>
+  </div>
+</aside>
+
+<div class="main">
+
+  <header class="topbar">
+    <div class="topbar-left">
+      <span class="topbar-label" id="topbar-label">SCÉNARIOS</span>
+    </div>
+    <div class="topbar-right">
+      <span class="topbar-badge">DuckDB SQL CTF</span>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <!-- ══════════════════════════════════════ SCÉNARIOS ══ -->
+    <section id="tab-scenarios" class="tab-pane">
+
+      <div class="mission-card">
+        <div class="mission-stamp">MISSION ACTIVE</div>
+        <h1 class="mission-title">Opération Canards Disparus</h1>
+        <p>Une alerte a été remontée par la <strong>Bibliothèque du Lac</strong> : des documents officiels empruntés n'ont pas été retournés. Un nombre anormalement élevé concerne le même type de document.</p>
+        <p>Votre mission : identifier les documents manquants, remonter la piste de l'emprunteur, découvrir son identité et comprendre ses motivations.</p>
+        <div class="mission-prereq">
+          <span class="prereq-tag">PRÉ-REQUIS</span>
+          <a href="https://duckdb.org/docs/installation/" target="_blank">Installer DuckDB →</a>
+          <span class="prereq-note">Toutes les requêtes se font en local via DuckDB</span>
+        </div>
+      </div>
+
+      <div class="scenario-chain">
+        <button class="chain-btn active" data-scenario="1"><span class="cbtn-num">01</span><span class="cbtn-lbl">Registres</span></button>
+        <span class="chain-line"></span>
+        <button class="chain-btn" data-scenario="2"><span class="cbtn-num">02</span><span class="cbtn-lbl">Archives</span></button>
+        <span class="chain-line"></span>
+        <button class="chain-btn" data-scenario="3"><span class="cbtn-num">03</span><span class="cbtn-lbl">Identité</span></button>
+        <span class="chain-line"></span>
+        <button class="chain-btn" data-scenario="4"><span class="cbtn-num">04</span><span class="cbtn-lbl">Réseau</span></button>
+      </div>
+
+      <!-- Scénario 1 -->
+      <div class="sc-panel" id="scenario-panel-1">
+        <div class="sc-aside">
+          <div class="sc-index">01</div>
+          <div class="sc-tags">
+            <div class="sc-tags-label">TECHNIQUES</div>
+            <code>read_json_auto</code><code>IS NULL</code><code>GROUP BY</code><code>ORDER BY</code>
+          </div>
+        </div>
+        <div class="sc-body">
+          <h2 class="sc-title">Les Registres de la Bibliothèque</h2>
+          <div class="sc-context">La Bibliothèque du Lac vous transmet une archive <code>library_logs.zip</code> contenant les registres de prêts de la journée. Chaque fichier <code>.json</code> contient une centaine d'enregistrements. Certains documents n'ont pas été retournés.</div>
+          <div class="sc-section">OBJECTIFS</div>
+          <ol class="sc-steps">
+            <li>Charger l'ensemble des fichiers JSON dans DuckDB</li>
+            <li>Identifier les documents qui n'ont <strong>pas été retournés</strong></li>
+            <li>Déterminer quel <strong>type de document</strong> revient de façon suspecte</li>
+            <li>Extraire le flag caché dans les <strong>métadonnées</strong> des documents suspects</li>
+          </ol>
+          <div class="sc-flag">
+            <div class="sc-flag-label">FLAG ATTENDU</div>
+            <code>FLAG{aws_access_key_id=...,aws_secret_access_key=...,bucket=...}</code>
+            <p>Ces credentials donnent accès aux archives S3 pour le scénario suivant.</p>
+          </div>
+          <div class="sc-section">INDICES</div>
+          <div class="sc-hints">
+            <details><summary>Indice 1 — Charger des fichiers JSON</summary><pre><code>SELECT * FROM read_json_auto('chemin/vers/logs/*.json');</code></pre></details>
+            <details><summary>Indice 2 — Filtrer les documents non retournés</summary><pre><code>SELECT * FROM read_json_auto('logs/*.json')
+WHERE timestamp_return IS NULL;</code></pre></details>
+            <details><summary>Indice 3 — Identifier le type suspect</summary><pre><code>SELECT document_type, COUNT(*) AS nb
+FROM read_json_auto('logs/*.json')
+WHERE timestamp_return IS NULL
+GROUP BY document_type
+ORDER BY nb DESC;</code></pre></details>
+            <details><summary>Indice 4 — Reconstituer le flag</summary><pre><code>SELECT metadata.notes, timestamp_checkout
+FROM read_json_auto('logs/*.json')
+WHERE timestamp_return IS NULL
+  AND document_type = '???'
+ORDER BY timestamp_checkout;</code></pre><p>Concaténez les fragments dans l'ordre chronologique.</p></details>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scénario 2 -->
+      <div class="sc-panel" id="scenario-panel-2">
+        <div class="sc-aside">
+          <div class="sc-index">02</div>
+          <div class="sc-tags">
+            <div class="sc-tags-label">TECHNIQUES</div>
+            <code>httpfs</code><code>read_parquet</code><code>CREATE SECRET</code><code>jaro_winkler_similarity</code>
+          </div>
+        </div>
+        <div class="sc-body">
+          <h2 class="sc-title">Les Archives du Lac</h2>
+          <div class="sc-context">Grâce aux credentials AWS du scénario précédent, vous accédez à un bucket S3 contenant les archives numériques. L'emprunteur a signé à la main — son nom varie d'un prêt à l'autre. Vous devez retrouver son identité exacte dans l'annuaire des employés.</div>
+          <div class="sc-section">OBJECTIFS</div>
+          <ol class="sc-steps">
+            <li>Configurer l'accès S3 dans DuckDB</li>
+            <li>Explorer les fichiers Parquet du bucket</li>
+            <li>Retrouver l'identité via <strong>correspondance floue</strong></li>
+            <li>Explorer les <strong>métadonnées</strong> des tables pour extraire le flag</li>
+          </ol>
+          <div class="sc-flag">
+            <div class="sc-flag-label">FLAG ATTENDU</div>
+            <code>FLAG{pg_host=...,pg_user=...,pg_password=...,pg_dbname=...}</code>
+            <p>Ces credentials donnent accès à la base PostgreSQL pour le scénario suivant.</p>
+          </div>
+          <div class="sc-section">INDICES</div>
+          <div class="sc-hints">
+            <details><summary>Indice 1 — Configurer l'accès S3</summary><pre><code>INSTALL httpfs; LOAD httpfs;
+
+CREATE SECRET my_s3_secret (
+    TYPE S3,
+    KEY_ID 'votre_access_key',
+    SECRET 'votre_secret_key',
+    REGION 'eu-west-1'
+);</code></pre></details>
+            <details><summary>Indice 2 — Lire des fichiers Parquet depuis S3</summary><pre><code>SELECT * FROM read_parquet('s3://bucket-name/data/employees.parquet') LIMIT 10;</code></pre></details>
+            <details><summary>Indice 3 — Correspondance floue</summary><pre><code>SELECT
+    e.first_name || ' ' || e.last_name AS employee_name,
+    jaro_winkler_similarity('nom_approximatif',
+        e.first_name || ' ' || e.last_name) AS score
+FROM read_parquet('s3://bucket/data/employees.parquet') e
+ORDER BY score DESC LIMIT 10;</code></pre></details>
+            <details><summary>Indice 4 — Fouiller les métadonnées</summary><p>Chaque table a un champ <code>metadata</code> JSON. Cherchez dans plusieurs tables — les lignes de l'employé suspect sont intéressantes.</p></details>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scénario 3 -->
+      <div class="sc-panel" id="scenario-panel-3">
+        <div class="sc-aside">
+          <div class="sc-index">03</div>
+          <div class="sc-tags">
+            <div class="sc-tags-label">TECHNIQUES</div>
+            <code>postgres ext.</code><code>ATTACH</code><code>JOIN</code><code>http_get</code><code>Nominatim</code>
+          </div>
+        </div>
+        <div class="sc-body">
+          <h2 class="sc-title">L'Identité du Suspect</h2>
+          <div class="sc-context">Vous avez identifié l'employé et obtenu les accès PostgreSQL. L'enquête prend un tournant : le suspect a été retrouvé sans vie — victime d'un accident de chasse. Quelqu'un de son entourage a dû utiliser son badge…</div>
+          <div class="sc-section">OBJECTIFS</div>
+          <ol class="sc-steps">
+            <li>Se connecter à PostgreSQL depuis DuckDB</li>
+            <li>Retrouver les informations complètes du suspect</li>
+            <li>Déterminer sa <strong>ville</strong> via géocodage inversé (Nominatim)</li>
+            <li>Consulter la table <code>city_information</code> pour le flag</li>
+          </ol>
+          <div class="sc-flag">
+            <div class="sc-flag-label">FLAG ATTENDU</div>
+            <code>FLAG{...}</code>
+            <p>Ce flag donne accès aux données du graphe relationnel.</p>
+          </div>
+          <div class="sc-section">INDICES</div>
+          <div class="sc-hints">
+            <details><summary>Indice 1 — Se connecter à PostgreSQL</summary><pre><code>INSTALL postgres; LOAD postgres;
+ATTACH 'host=... port=5432 dbname=... user=... password=...'
+    AS ctfdb (TYPE POSTGRES);</code></pre></details>
+            <details><summary>Indice 2 — Explorer les tables</summary><pre><code>SHOW ALL TABLES;</code></pre></details>
+            <details><summary>Indice 3 — Jointures personne / profession / adresse</summary><pre><code>SELECT p.first_name, p.last_name, pr.title, a.latitude, a.longitude
+FROM ctfdb.persons p
+JOIN ctfdb.professions pr ON pr.person_id = p.id
+JOIN ctfdb.addresses a ON a.person_id = p.id
+WHERE a.is_current = true;</code></pre></details>
+            <details><summary>Indice 4 — Géocodage inversé avec Nominatim</summary><pre><code>INSTALL httpfs; LOAD httpfs;
+WITH req AS (
+    SELECT http_get(
+        'https://nominatim.openstreetmap.org/reverse',
+        headers => MAP { 'User-Agent': 'DuckDB-CTF/1.0', 'Accept': 'application/json' },
+        params  => MAP { 'format': 'geocodejson', 'lat': '48.879', 'lon': '2.283' }
+    ) AS response
+)
+SELECT json_extract_string(response->>'body', '$.address.city') AS city FROM req;</code></pre></details>
+            <details><summary>Indice 5 — Chercher dans city_information</summary><p>Une fois la ville identifiée, regardez le champ <code>metadata</code> de la table <code>city_information</code>.</p></details>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scénario 4 -->
+      <div class="sc-panel" id="scenario-panel-4">
+        <div class="sc-aside">
+          <div class="sc-index">04</div>
+          <div class="sc-tags">
+            <div class="sc-tags-label">TECHNIQUES</div>
+            <code>DuckPGQ</code><code>PROPERTY GRAPH</code><code>GRAPH_TABLE</code><code>MATCH</code>
+          </div>
+        </div>
+        <div class="sc-body">
+          <h2 class="sc-title">Le Réseau du Suspect</h2>
+          <div class="sc-context">Le médecin est décédé, mais son badge a été utilisé. Qui dans son entourage aurait pu s'en servir ? Explorez le réseau de relations sociales et familiales — vous découvrirez un proche avec un profil troublant.</div>
+          <div class="sc-section">OBJECTIFS</div>
+          <ol class="sc-steps">
+            <li>Construire un <strong>property graph</strong> avec DuckPGQ</li>
+            <li>Explorer le réseau du médecin décédé</li>
+            <li>Identifier le proche le plus suspect</li>
+            <li>Trouver la note qui révèle le <strong>mobile</strong> du crime</li>
+          </ol>
+          <div class="sc-flag">
+            <div class="sc-flag-label">FLAG FINAL</div>
+            <code>FLAG{...}</code>
+          </div>
+          <div class="sc-section">INDICES</div>
+          <div class="sc-hints">
+            <details><summary>Indice 1 — Activer DuckPGQ</summary><pre><code>INSTALL duckpgq FROM community;
+LOAD duckpgq;</code></pre></details>
+            <details><summary>Indice 2 — Créer un property graph</summary><pre><code>CREATE PROPERTY GRAPH social_network
+VERTEX TABLES (persons)
+EDGE TABLES (
+    relationships
+    SOURCE KEY (person_id_1) REFERENCES persons (id)
+    DESTINATION KEY (person_id_2) REFERENCES persons (id)
+);</code></pre></details>
+            <details><summary>Indice 3 — Requêter le graphe</summary><pre><code>FROM GRAPH_TABLE (social_network
+    MATCH (p1:persons)-[r:relationships]->(p2:persons)
+    WHERE p1.last_name = '???'
+    COLUMNS (p2.first_name, p2.last_name, r.relationship_type, r.notes)
+);</code></pre></details>
+          </div>
+          <div class="sc-epilogue"><em>Les agents du C.A.C. se rendent à l'adresse identifiée. Ils trouvent le suspect, incapable de fuir : il ne pouvait pas se résoudre à abandonner les 12 petits qu'il venait de récupérer. Ils étaient trop mignons. Affaire classée.</em></div>
+        </div>
+      </div>
+
+      <div class="submit-block">
+        <div class="submit-label">SOUMETTRE UN FLAG</div>
+        <pre><code>INSTALL httpfs; LOAD httpfs;
+
+CREATE SECRET my_s3_secret (
+    TYPE S3,
+    KEY_ID '&lt;aws_access_key_id&gt;',
+    SECRET '&lt;aws_secret_access_key&gt;',
+    REGION 'eu-west-1'
+);
+
+COPY (
+    SELECT '&lt;pseudo&gt;' AS pseudo, &lt;N&gt; AS scenario, 'FLAG{...}' AS flag
+) TO 's3://&lt;bucket&gt;/user-inputs/&lt;pseudo&gt;_scenario_&lt;N&gt;.parquet' (FORMAT PARQUET);</code></pre>
+      </div>
+
+    </section>
+
+    <!-- ══════════════════════════════════════ LEADERBOARD ══ -->
+    <section id="tab-leaderboard" class="tab-pane">
+
+      <div class="podium-row">
+        <div id="podium-1" class="podium-card p-gold">
+          <div class="p-trophy">🏆</div>
+          <div class="p-place">1st PLACE</div>
+          <div class="p-name">—</div>
+          <div class="p-score">0 pts</div>
+        </div>
+        <div id="podium-2" class="podium-card p-silver">
+          <div class="p-trophy">🥈</div>
+          <div class="p-place">2nd PLACE</div>
+          <div class="p-name">—</div>
+          <div class="p-score">0 pts</div>
+        </div>
+        <div id="podium-3" class="podium-card p-bronze">
+          <div class="p-trophy">🥉</div>
+          <div class="p-place">3rd PLACE</div>
+          <div class="p-name">—</div>
+          <div class="p-score">0 pts</div>
+        </div>
+        <div class="stat-card">
+          <div id="stat-players" class="stat-num">—</div>
+          <div class="stat-label">JOUEURS</div>
+        </div>
+        <div class="stat-card">
+          <div id="stat-solved" class="stat-num">—</div>
+          <div class="stat-label">FLAGS</div>
+        </div>
+      </div>
+
+      <div class="chart-box">
+        <canvas id="progress-chart"></canvas>
+      </div>
+
+      <p id="updated"></p>
+
+      <table id="leaderboard">
+        <thead><tr></tr></thead>
+        <tbody></tbody>
+      </table>
+
+    </section>
+
+    <!-- ══════════════════════════════════════ CARTE ══ -->
+    <section id="tab-map" class="tab-pane">
+      <div id="map" style="height:calc(100vh - 100px)"></div>
+      <div class="map-legend">
+        <span class="legend-dot" style="background:#f85149"></span>Cible
+        <span class="legend-dot" style="background:#f0c000;margin-left:1rem"></span>Leurre
+        <span class="legend-dot" style="background:#5b9cf6;margin-left:1rem"></span>Bibliothèque
+      </div>
+    </section>
+
+  </div><!-- .content -->
+</div><!-- .main -->
+</div><!-- .layout -->
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/date-fns@3.6.0/cdn.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script type="module" src="app.js"></script>
+
+<script>
+  const LABELS = { scenarios: "SCÉNARIOS", leaderboard: "LEADERBOARD", map: "CARTE" };
+  const navBtns    = document.querySelectorAll(".nav-item");
+  const tabPanes   = document.querySelectorAll(".tab-pane");
+  const topbarLbl  = document.getElementById("topbar-label");
+
+  function showTab(name) {
+    navBtns.forEach(b => b.classList.toggle("active", b.dataset.tab === name));
+    tabPanes.forEach(p => { p.style.display = p.id === "tab-" + name ? "block" : "none"; });
+    topbarLbl.textContent = LABELS[name] || name.toUpperCase();
+    window.dispatchEvent(new CustomEvent("tabchange", { detail: name }));
+  }
+
+  showTab("scenarios");
+  navBtns.forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));
+
+  const chainBtns = document.querySelectorAll(".chain-btn");
+  const scPanels  = document.querySelectorAll(".sc-panel");
+
+  function showScenario(n) {
+    chainBtns.forEach(b => b.classList.toggle("active", b.dataset.scenario === n));
+    scPanels.forEach(p => { p.style.display = p.id === "scenario-panel-" + n ? "flex" : "none"; });
+  }
+
+  showScenario("1");
+  chainBtns.forEach(b => b.addEventListener("click", () => showScenario(b.dataset.scenario)));
+</script>
+
 </body>
 </html>

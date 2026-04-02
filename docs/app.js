@@ -3,7 +3,7 @@ const S3_BUCKET = "duckdb-sql-ctf";
 const S3_REGION = "eu-west-1";
 const S3_PREFIX = "leaderboard/results/";
 const S3_BASE_URL = `https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com`;
-const IS_LOCAL = false; // bascule en local pour tests (doit être lancé depuis la racine du projet avec `python -m http.server`)
+const IS_LOCAL = ["localhost", "127.0.0.1"].includes(location.hostname) || location.hostname.startsWith("172.");
 const LOCAL_RESULTS_URL = `${location.origin}/dev-data/results.parquet`;
 const REFRESH_INTERVAL_MS = 30_000;
 
@@ -57,10 +57,10 @@ async function listParquetFiles() {
 // === DuckDB-WASM setup ===
 import * as duckdb from "https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.29.0/+esm";
 
-const status = document.getElementById("status");
-const thead = document.querySelector("#leaderboard thead tr");
-const tbody = document.querySelector("#leaderboard tbody");
-const updated = document.getElementById("updated");
+const status  = () => document.getElementById("status");
+const thead   = () => document.querySelector("#leaderboard thead tr");
+const tbody   = () => document.querySelector("#leaderboard tbody");
+const updated = () => document.getElementById("updated");
 
 let db;
 window._db = () => db; // debug: accès depuis la console navigateur
@@ -150,17 +150,37 @@ function computeScoreboard(rows) {
   );
 }
 
+function renderPodium(scoreboard, rows) {
+  const places = [1, 2, 3];
+  places.forEach((place, i) => {
+    const card = document.getElementById(`podium-${place}`);
+    if (!card) return;
+    const player = scoreboard[i];
+    if (player) {
+      card.querySelector(".p-name").textContent = player.pseudo;
+      card.querySelector(".p-score").textContent = `${player.totalScore} pts`;
+    } else {
+      card.querySelector(".p-name").textContent = "—";
+      card.querySelector(".p-score").textContent = "0 pts";
+    }
+  });
+
+  const statPlayers = document.getElementById("stat-players");
+  const statSolved  = document.getElementById("stat-solved");
+  if (statPlayers) statPlayers.textContent = scoreboard.length;
+  if (statSolved)  statSolved.textContent  = rows.length;
+}
+
 function renderScoreboard(scoreboard, scenarios) {
-  // En-têtes dynamiques
-  thead.innerHTML =
+  thead().innerHTML =
     `<th>Rang</th><th>Joueur</th><th>Score</th>` +
     scenarios.map(s => `<th>Scénario ${s}</th>`).join("");
 
-  tbody.innerHTML = "";
+  tbody().innerHTML = "";
 
   if (scoreboard.length === 0) {
     const cols = 3 + scenarios.length;
-    tbody.innerHTML = `<tr><td colspan="${cols}" style="color:#8b949e;padding:2rem">Aucun résultat pour l'instant — soyez le premier !</td></tr>`;
+    tbody().innerHTML = `<tr><td colspan="${cols}" style="color:#64748b;padding:2rem">Aucun résultat pour l'instant — soyez le premier !</td></tr>`;
     return;
   }
 
@@ -182,14 +202,15 @@ function renderScoreboard(scoreboard, scenarios) {
     }
 
     tr.innerHTML = cells;
-    tbody.appendChild(tr);
+    tbody().appendChild(tr);
   });
 }
 
 // Palette de couleurs pour les joueurs
 const PLAYER_COLORS = [
-  "#58a6ff", "#3fb950", "#f0c000", "#f0883e",
-  "#bc8cff", "#79c0ff", "#56d364", "#ffa657",
+  "#5b9cf6", "#3fb950", "#f0c000", "#f0883e",
+  "#bc8cff", "#ff6b6b", "#56d364", "#ffa657",
+  "#79c0ff", "#ffb3c6", "#aff5b4", "#ffd700",
 ];
 
 function computeTimeSeries(rows) {
@@ -273,24 +294,36 @@ function renderChart(rows) {
     plugins: [highlightPlugin],
     options: {
       responsive: true,
+      maintainAspectRatio: false,
       animation: false,
       scales: {
         x: {
           type: "time",
           time: { tooltipFormat: "HH:mm:ss", displayFormats: { minute: "HH:mm", hour: "HH:mm" } },
-          ticks: { color: "#8b949e" },
-          grid: { color: "#21262d" },
+          ticks: { color: "#4b6080", font: { size: 10, family: "'IBM Plex Mono', monospace" } },
+          grid: { color: "rgba(255,255,255,0.03)" },
+          border: { color: "#1e2d47" },
         },
         y: {
           beginAtZero: true,
-          ticks: { color: "#8b949e", stepSize: 50 },
-          grid: { color: "#21262d" },
-          title: { display: true, text: "Score cumulé", color: "#8b949e" },
+          ticks: { color: "#4b6080", stepSize: 100, font: { size: 10, family: "'IBM Plex Mono', monospace" } },
+          grid: { color: "rgba(255,255,255,0.03)" },
+          border: { color: "#1e2d47" },
         },
       },
       plugins: {
-        legend: { labels: { color: "#e6edf3" } },
+        legend: {
+          position: "bottom",
+          labels: { color: "#7a9ab8", boxWidth: 10, boxHeight: 2, padding: 14, font: { size: 10, family: "'IBM Plex Mono', monospace" } },
+        },
         tooltip: {
+          backgroundColor: "#111827",
+          borderColor: "#1e2d47",
+          borderWidth: 1,
+          titleColor: "#d4dff0",
+          bodyColor: "#7a9ab8",
+          titleFont: { family: "'IBM Plex Mono', monospace", size: 11 },
+          bodyFont: { family: "'IBM Plex Mono', monospace", size: 11 },
           callbacks: {
             label: (ctx) => {
               const { rank, scenario, pts } = ctx.raw;
@@ -309,30 +342,111 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
+function setStatus(msg) { const el = status(); if (el) el.textContent = msg; }
+
 async function refresh() {
   try {
-    status.textContent = "Refreshing...";
+    setStatus("Refreshing...");
     const rows = await fetchLeaderboard();
     const scenarios = [...new Set(rows.map(r => r.scenario))].sort((a, b) => a - b);
     const scoreboard = computeScoreboard(rows);
+    renderPodium(scoreboard, rows);
     renderScoreboard(scoreboard, scenarios);
     renderChart(rows);
-    status.textContent = "";
-    updated.textContent = `Last updated: ${new Date().toLocaleTimeString()}`;
+    setStatus("");
+    const _u = updated(); if (_u) _u.textContent = `Last updated: ${new Date().toLocaleTimeString()}`;
   } catch (err) {
-    status.textContent = `Error: ${err.message}`;
+    setStatus(`Error: ${err.message}`);
     console.error(err);
   }
 }
 
+// ===== CARTE =====
+const LOCATIONS_URL = IS_LOCAL
+  ? `${location.origin}/dev-data/locations.parquet`
+  : null; // TODO: URL CloudFront/S3 en prod
+
+const ROLE_COLORS = { target: "#f85149", decoy: "#f0c000", library: "#58a6ff" };
+
+let leafletMap = null;
+window._leafletMap = () => leafletMap;
+
+function makeLeafletIcon(color) {
+  return L.divIcon({
+    className: "",
+    html: `<div style="width:14px;height:14px;background:${color};border:3px solid #0d1117;border-radius:50%;box-shadow:0 0 8px ${color}99"></div>`,
+    iconSize: [14, 14],
+    iconAnchor: [7, 7],
+  });
+}
+
+async function loadMap() {
+  if (leafletMap) return; // déjà initialisée
+  if (!LOCATIONS_URL) {
+    const _s = status(); if (_s) _s.textContent = "URL carte non configurée.";
+    return;
+  }
+
+  leafletMap = L.map("map", { center: [46.8, 1.7], zoom: 6 });
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    maxZoom: 19,
+  }).addTo(leafletMap);
+
+  const response = await fetch(LOCATIONS_URL);
+  await db.registerFileBuffer("locations.parquet", new Uint8Array(await response.arrayBuffer()));
+  const conn = await db.connect();
+  const result = await conn.query("SELECT * FROM read_parquet('locations.parquet')");
+  await conn.close();
+
+  const rows = result.toArray().map(r => r.toJSON());
+  const markers = [];
+  const routeCoords = [];
+
+  for (const row of rows) {
+    const color = ROLE_COLORS[row.role] ?? "#8b949e";
+    const m = L.marker([row.lat, row.lon], { icon: makeLeafletIcon(color) })
+      .addTo(leafletMap)
+      .bindPopup(`<strong>${row.person}</strong><br><span style="color:#888;font-size:0.8rem">${row.city}</span><br><br>${row.note}<br><code style="font-size:0.75rem">${row.lat.toFixed(6)}, ${row.lon.toFixed(6)}</code>`);
+    markers.push(m);
+    routeCoords.push([row.lat, row.lon]);
+  }
+
+  if (routeCoords.length > 1) {
+    L.polyline(routeCoords, { color: "#484f58", weight: 2, dashArray: "6 4" }).addTo(leafletMap);
+  }
+
+  leafletMap.invalidateSize();
+  leafletMap.fitBounds(L.featureGroup(markers).getBounds().pad(0.3));
+}
+
+// Déclencher le chargement de la carte quand on passe sur l'onglet
+window.addEventListener("tabchange", ({ detail }) => {
+  if (detail === "map") {
+    setTimeout(() => {
+      if (!leafletMap) {
+        loadMap().catch(err => {
+          const _s = status(); if (_s) _s.textContent = `Erreur carte : ${err.message}`;
+          console.error(err);
+        });
+      } else {
+        // Forcer Leaflet à recalculer les dimensions si déjà initialisée
+        leafletMap.invalidateSize();
+      }
+    }, 100);
+  }
+});
+
+// ===== MAIN =====
+
 async function main() {
   try {
     await initDB();
-    status.textContent = "Fetching results...";
+    const _s = status(); if (_s) _s.textContent = "Fetching results...";
     await refresh();
     setInterval(refresh, REFRESH_INTERVAL_MS);
   } catch (err) {
-    status.textContent = `Failed to initialize: ${err.message}`;
+    const _s = status(); if (_s) _s.textContent = `Failed to initialize: ${err.message}`;
     console.error(err);
   }
 }
