@@ -275,7 +275,8 @@ body {
   color: var(--c-muted);
   border: 1px solid var(--c-border);
   padding: 0.08rem 0.28rem;
-  white-space: nowrap;
+  white-space: normal;
+  word-break: break-word;
 }
 
 .sc-body { flex: 1; padding: 1.1rem 1.25rem; min-width: 0; }
