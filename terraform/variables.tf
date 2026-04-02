@@ -19,5 +19,5 @@ variable "aws_region" {
 variable "bucket_name" {
   description = "S3 bucket name for CTF data"
   type        = string
-  default     = "duckdb-sql-ctf"
+  default     = "duckdb-sql-ctf-test"
 }
