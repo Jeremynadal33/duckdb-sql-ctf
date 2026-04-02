@@ -15,7 +15,7 @@ terraform {
   }
 
   backend "s3" {
-    bucket = "bg-lab-dev-tfstates-bucket"
+    bucket = "ippon-data-dev-tfstates-bucket"
     key    = "duckdb-sql-ctf/terraform.tfstate"
     region = "eu-west-1"
   }
@@ -36,8 +36,8 @@ provider "aws" {
 
   default_tags {
     tags = {
-      "bg:owners"  = "p.farey@betclicgroup.com"
-      "bg:project" = "duckdb-sql-ctf"
+      "ippon:owners"  = "jnadal@ippon.fr"
+      "ippon:project" = "duckdb-sql-ctf"
     }
   }
 }
