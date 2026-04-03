@@ -1,5 +1,5 @@
 import json
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 
 from data_generator.config import CTFConfig, load_config
@@ -42,11 +42,12 @@ class TestLoadConfig:
         tf_json = {
             "db_endpoint": {"value": "mydb.rds.amazonaws.com:5432"},
             "pg_user": {"value": "postgres"},
-            "pg_password": {"value": "pg_pass"},
             "db_name": {"value": "ctfdb"},
             "pg_ro_user": {"value": "ctf_reader"},
             "s3_bucket_name": {"value": "duckdb-sql-ctf"},
             "iam_access_key_id": {"value": "AKIAEXAMPLE"},
+            "ssm_pg_master_password": {"value": "/ctf/pg_master_password"},
+            "ssm_pg_readonly_password": {"value": "/ctf/pg_readonly_password"},
         }
 
         def mock_run(args, **kwargs):
@@ -58,26 +59,31 @@ class TestLoadConfig:
                 result.stdout = json.dumps(tf_json)
             elif args[1] == "output" and args[2] == "-raw":
                 name = args[3]
-                if name == "pg_ro_password":
-                    result.stdout = "ro_secret"
-                elif name == "iam_secret_access_key":
+                if name == "iam_secret_access_key":
                     result.stdout = "iam_secret"
             return result
 
-        env = {
-            "TF_VAR_pg_user": "postgres",
-            "TF_VAR_pg_password": "pg_pass",
-        }
+        def mock_get_parameter(Name, WithDecryption=False):
+            ssm_values = {
+                "/ctf/pg_master_password": "master_secret",
+                "/ctf/pg_readonly_password": "ro_secret",
+            }
+            return {"Parameter": {"Value": ssm_values[Name]}}
+
+        mock_ssm = MagicMock()
+        mock_ssm.get_parameter = mock_get_parameter
 
         with (
             patch("data_generator.config.subprocess.run", side_effect=mock_run),
-            patch.dict("os.environ", env, clear=False),
+            patch("data_generator.config.boto3.client", return_value=mock_ssm),
         ):
             config = load_config(tmp_path)
 
         assert config.db_host == "mydb.rds.amazonaws.com"
         assert config.db_name == "ctfdb"
         assert config.pg_master_user == "postgres"
+        assert config.pg_master_password == "master_secret"
+        assert config.pg_ro_user == "ctf_reader"
         assert config.pg_ro_password == "ro_secret"
         assert config.iam_secret_access_key == "iam_secret"
         assert config.s3_bucket_name == "duckdb-sql-ctf"

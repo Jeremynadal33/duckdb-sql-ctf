@@ -3,7 +3,7 @@ const S3_BUCKET = "duckdb-sql-ctf";
 const S3_REGION = "eu-west-1";
 const S3_PREFIX = "leaderboard/results/";
 const S3_BASE_URL = `https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com`;
-const IS_LOCAL = ["localhost", "127.0.0.1"].includes(location.hostname) || location.hostname.startsWith("172.");
+const IS_LOCAL = false;
 const LOCAL_RESULTS_URL = `${location.origin}/dev-data/results.parquet`;
 const REFRESH_INTERVAL_MS = 30_000;
 

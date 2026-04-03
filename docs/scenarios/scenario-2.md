@@ -35,7 +35,7 @@ CREATE SECRET my_s3_secret (
 ### Indice 2 — Lire des fichiers Parquet depuis S3
 
 ```sql
-SELECT * FROM read_parquet('s3://bucket-name/data/employees.parquet') LIMIT 10;
+SELECT * FROM read_parquet('s3://bucket-name/data/employees/*.parquet') LIMIT 10;
 ```
 
 ### Indice 3 — Correspondance floue
@@ -45,7 +45,7 @@ SELECT
     e.first_name || ' ' || e.last_name AS employee_name,
     jaro_winkler_similarity('nom_approximatif',
         e.first_name || ' ' || e.last_name) AS score
-FROM read_parquet('s3://bucket/data/employees.parquet') e
+FROM read_parquet('s3://bucket/data/employees/*.parquet') e
 ORDER BY score DESC LIMIT 10;
 ```
 
