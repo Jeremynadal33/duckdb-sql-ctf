@@ -595,6 +595,13 @@ tr:hover { background: var(--c-surface); }
   text-overflow: ellipsis;
 }
 
+.landing-agent {
+  font-size: 1rem;
+  padding: 0.4rem 1rem;
+  margin-top: 0.6rem;
+  letter-spacing: 0.18em;
+}
+
 /* ── AGENT MODAL ───────────────────────────────────────────────── */
 
 #agent-overlay {
