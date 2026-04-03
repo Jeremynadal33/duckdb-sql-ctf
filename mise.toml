@@ -49,6 +49,16 @@ description = "Générer et uploader les Parquet S3 — scénario 2 (requiert AW
 dir = "data_generator"
 run = "uv run ctf-generate parquet --upload"
 
+[tasks."generate:graph-dev"]
+description = "Générer social_network.duckdb en local — scénario 4 (sans AWS)"
+dir = "data_generator"
+run = "uv run ctf-generate graph --dev --no-upload --output-dir /tmp/ctf_scenario4"
+
+[tasks."generate:graph"]
+description = "Générer et uploader social_network.duckdb sur S3 — scénario 4 (requiert AWS)"
+dir = "data_generator"
+run = "uv run ctf-generate graph --upload"
+
 [tasks."generate:postgres"]
 description = "Peupler la base PostgreSQL — scénario 3 (requiert RDS)"
 dir = "data_generator"
