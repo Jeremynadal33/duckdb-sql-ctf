@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scenarios — DuckDB CTF</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<div class="layout">
+
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <span class="logo-duck">🦆</span>
+    <div class="logo-text">
+      <span class="logo-op">OPERATION</span>
+      <span class="logo-name">CANARDS</span>
+      <span class="logo-sub">DISPARUS</span>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <a class="nav-item active" href="../scenarios/">
+      <span class="nav-icon">⬡</span>
+      <span>SCENARIOS</span>
+    </a>
+    <a class="nav-item" href="../leaderboard/">
+      <span class="nav-icon">◈</span>
+      <span>LEADERBOARD</span>
+    </a>
+    <a class="nav-item" href="../map/">
+      <span class="nav-icon">◉</span>
+      <span>CARTE</span>
+    </a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <a href="../" class="back-link">&larr; ACCUEIL</a>
+  </div>
+</aside>
+
+<div class="main">
+
+  <header class="topbar">
+    <div class="topbar-left">
+      <a href="../" class="topbar-back">&larr;</a>
+      <span class="topbar-label">SCENARIOS</span>
+    </div>
+    <div class="topbar-right">
+      <span class="topbar-badge">DuckDB SQL CTF</span>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <div class="mission-card">
+      <div class="mission-stamp">MISSION ACTIVE</div>
+      <h1 class="mission-title">Operation Canards Disparus</h1>
+      <p>Une alerte a ete remontee par la <strong>Bibliotheque du Lac</strong> : des documents officiels empruntes n'ont pas ete retournes. Un nombre anormalement eleve concerne le meme type de document.</p>
+      <p>Votre mission : identifier les documents manquants, remonter la piste de l'emprunteur, decouvrir son identite et comprendre ses motivations.</p>
+      <div class="mission-prereq">
+        <span class="prereq-tag">PRE-REQUIS</span>
+        <a href="https://duckdb.org/docs/installation/" target="_blank">Installer DuckDB &rarr;</a>
+        <span class="prereq-note">Toutes les requetes se font en local via DuckDB</span>
+      </div>
+    </div>
+
+    <div id="scenario-chain" class="scenario-chain"></div>
+    <div id="scenario-panels"></div>
+
+    <div class="submit-block">
+      <div class="submit-label">SOUMETTRE UN FLAG</div>
+      <pre><code>INSTALL httpfs; LOAD httpfs;
+
+CREATE SECRET my_s3_secret (
+    TYPE S3,
+    KEY_ID '&lt;aws_access_key_id&gt;',
+    SECRET '&lt;aws_secret_access_key&gt;',
+    REGION 'eu-west-1'
+);
+
+COPY (
+    SELECT '&lt;pseudo&gt;' AS pseudo, &lt;N&gt; AS scenario, 'FLAG{...}' AS flag
+) TO 's3://&lt;bucket&gt;/user-inputs/&lt;pseudo&gt;_scenario_&lt;N&gt;.parquet' (FORMAT PARQUET);</code></pre>
+    </div>
+
+  </div>
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/marked@9/marked.min.js"></script>
+<script src="scenarios.js"></script>
+
+</body>
+</html>

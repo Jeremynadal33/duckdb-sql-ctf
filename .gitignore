@@ -8,3 +8,5 @@ terrform/.terraform*/
 test/
 data_generator/output/
 .vscode/
+*/**/.DS_Store
+.DS_Store

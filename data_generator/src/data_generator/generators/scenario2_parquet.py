@@ -29,10 +29,11 @@ S3_README = """# Archives numériques — Bibliothèque du Lac
 
 ## Tables disponibles
 
-- `employees` — Annuaire du personnel
-- `badges` — Registre des badges d'accès
-- `departments` — Liste des départements
+- `employees/` — Annuaire du personnel (fichiers fragmentés)
+- `badges/` — Registre des badges d'accès (fichiers fragmentés)
+- `departments/` — Liste des départements (fichiers fragmentés)
 
+Chaque dossier contient plusieurs fichiers `.parquet`.
 """
 
 
@@ -143,6 +144,34 @@ def _write_parquet(data: list, schema: pa.Schema, path: Path) -> None:
     pq.write_table(table, path)
 
 
+def _write_parquet_chunked(
+    data: list,
+    schema: pa.Schema,
+    output_dir: Path,
+    table_name: str,
+    min_chunks: int,
+    max_chunks: int,
+) -> list[Path]:
+    """Shuffle data and write to random-sized parquet chunks in a subdirectory."""
+    shuffled = list(data)
+    random.shuffle(shuffled)
+
+    num_chunks = min(random.randint(min_chunks, max_chunks), len(shuffled))
+    split_points = sorted(random.sample(range(1, len(shuffled)), num_chunks - 1))
+    split_points = [0, *split_points, len(shuffled)]
+
+    table_dir = output_dir / table_name
+    table_dir.mkdir(parents=True, exist_ok=True)
+
+    paths = []
+    for i in range(num_chunks):
+        chunk = shuffled[split_points[i] : split_points[i + 1]]
+        path = table_dir / f"part_{i + 1:03d}.parquet"
+        _write_parquet(chunk, schema, path)
+        paths.append(path)
+    return paths
+
+
 EMPLOYEE_SCHEMA = pa.schema(
     [
         pa.field("id", pa.int32()),
@@ -187,9 +216,15 @@ def generate_parquet(config: CTFConfig, output_dir: Path) -> Path:
     employees = _generate_employees(fake, config)
     badges = _generate_badges(fake, employees, config)
 
-    _write_parquet(departments, DEPARTMENT_SCHEMA, output_dir / "departments.parquet")
-    _write_parquet(employees, EMPLOYEE_SCHEMA, output_dir / "employees.parquet")
-    _write_parquet(badges, BADGE_SCHEMA, output_dir / "badges.parquet")
+    _write_parquet_chunked(
+        departments, DEPARTMENT_SCHEMA, output_dir, "departments", min_chunks=2, max_chunks=3
+    )
+    _write_parquet_chunked(
+        employees, EMPLOYEE_SCHEMA, output_dir, "employees", min_chunks=3, max_chunks=5
+    )
+    _write_parquet_chunked(
+        badges, BADGE_SCHEMA, output_dir, "badges", min_chunks=3, max_chunks=5
+    )
 
     # Write README for the bucket
     (output_dir / "README.md").write_text(S3_README, encoding="utf-8")
@@ -204,14 +239,15 @@ def upload_to_s3(config: CTFConfig, output_dir: Path) -> None:
     s3 = boto3.client("s3")
     bucket = config.s3_bucket_name
 
-    for filename in [
-        "employees.parquet",
-        "badges.parquet",
-        "departments.parquet",
-        "README.md",
-    ]:
-        filepath = output_dir / filename
-        s3.upload_file(str(filepath), bucket, f"data/{filename}")
+    # Upload README
+    s3.upload_file(str(output_dir / "README.md"), bucket, "data/README.md")
+
+    # Upload chunked parquet subdirectories
+    for table_name in ("employees", "badges", "departments"):
+        table_dir = output_dir / table_name
+        for parquet_file in sorted(table_dir.glob("*.parquet")):
+            s3_key = f"data/{table_name}/{parquet_file.name}"
+            s3.upload_file(str(parquet_file), bucket, s3_key)
 
 
 def generate_and_upload_parquet(

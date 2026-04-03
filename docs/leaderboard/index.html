@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Leaderboard — DuckDB CTF</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<div class="layout">
+
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <span class="logo-duck">🦆</span>
+    <div class="logo-text">
+      <span class="logo-op">OPERATION</span>
+      <span class="logo-name">CANARDS</span>
+      <span class="logo-sub">DISPARUS</span>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <a class="nav-item" href="../scenarios/">
+      <span class="nav-icon">⬡</span>
+      <span>SCENARIOS</span>
+    </a>
+    <a class="nav-item active" href="../leaderboard/">
+      <span class="nav-icon">◈</span>
+      <span>LEADERBOARD</span>
+    </a>
+    <a class="nav-item" href="../map/">
+      <span class="nav-icon">◉</span>
+      <span>CARTE</span>
+    </a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <a href="../" class="back-link">&larr; ACCUEIL</a>
+    <span id="status" class="sidebar-status"></span>
+  </div>
+</aside>
+
+<div class="main">
+
+  <header class="topbar">
+    <div class="topbar-left">
+      <a href="../" class="topbar-back">&larr;</a>
+      <span class="topbar-label">LEADERBOARD</span>
+    </div>
+    <div class="topbar-right">
+      <span class="topbar-badge">DuckDB SQL CTF</span>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <div class="podium-row">
+      <div id="podium-1" class="podium-card p-gold">
+        <div class="p-trophy">🏆</div>
+        <div class="p-place">1st PLACE</div>
+        <div class="p-name">—</div>
+        <div class="p-score">0 pts</div>
+      </div>
+      <div id="podium-2" class="podium-card p-silver">
+        <div class="p-trophy">🥈</div>
+        <div class="p-place">2nd PLACE</div>
+        <div class="p-name">—</div>
+        <div class="p-score">0 pts</div>
+      </div>
+      <div id="podium-3" class="podium-card p-bronze">
+        <div class="p-trophy">🥉</div>
+        <div class="p-place">3rd PLACE</div>
+        <div class="p-name">—</div>
+        <div class="p-score">0 pts</div>
+      </div>
+      <div class="stat-card">
+        <div id="stat-players" class="stat-num">—</div>
+        <div class="stat-label">JOUEURS</div>
+      </div>
+      <div class="stat-card">
+        <div id="stat-solved" class="stat-num">—</div>
+        <div class="stat-label">FLAGS</div>
+      </div>
+    </div>
+
+    <p id="updated"></p>
+
+    <table id="leaderboard">
+      <thead><tr></tr></thead>
+      <tbody></tbody>
+    </table>
+
+    <div class="chart-box">
+      <canvas id="progress-chart"></canvas>
+    </div>
+
+  </div>
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/date-fns@3.6.0/cdn.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+<script type="module" src="leaderboard.js"></script>
+
+</body>
+</html>

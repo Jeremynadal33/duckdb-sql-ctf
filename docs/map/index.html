@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Carte — DuckDB CTF</title>
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+</head>
+<body>
+<div class="layout">
+
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <span class="logo-duck">🦆</span>
+    <div class="logo-text">
+      <span class="logo-op">OPERATION</span>
+      <span class="logo-name">CANARDS</span>
+      <span class="logo-sub">DISPARUS</span>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <a class="nav-item" href="../scenarios/">
+      <span class="nav-icon">⬡</span>
+      <span>SCENARIOS</span>
+    </a>
+    <a class="nav-item" href="../leaderboard/">
+      <span class="nav-icon">◈</span>
+      <span>LEADERBOARD</span>
+    </a>
+    <a class="nav-item active" href="../map/">
+      <span class="nav-icon">◉</span>
+      <span>CARTE</span>
+    </a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <a href="../" class="back-link">&larr; ACCUEIL</a>
+    <span id="status" class="sidebar-status"></span>
+  </div>
+</aside>
+
+<div class="main">
+
+  <header class="topbar">
+    <div class="topbar-left">
+      <a href="../" class="topbar-back">&larr;</a>
+      <span class="topbar-label">CARTE</span>
+    </div>
+    <div class="topbar-right">
+      <span class="topbar-badge">DuckDB SQL CTF</span>
+    </div>
+  </header>
+
+  <div class="content">
+    <div id="map" style="height:calc(100vh - 100px)"></div>
+    <div class="map-legend">
+      <span class="legend-dot" style="background:#f85149"></span>Cible
+      <span class="legend-dot" style="background:#f0c000;margin-left:1rem"></span>Leurre
+      <span class="legend-dot" style="background:#5b9cf6;margin-left:1rem"></span>Bibliotheque
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script type="module" src="map.js"></script>
+
+</body>
+</html>

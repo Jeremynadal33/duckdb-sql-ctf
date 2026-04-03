@@ -1,29 +1,42 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DuckDB SQL CTF — Leaderboard</title>
+  <title>Operation Canards Disparus — DuckDB CTF</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="container">
-    <h1>DuckDB SQL CTF — Leaderboard</h1>
-    <div id="status">Loading DuckDB...</div>
-    <table id="leaderboard">
-      <thead><tr></tr></thead>
-      <tbody></tbody>
-    </table>
-    <p id="updated"></p>
 
-    <h2 style="margin-top:2.5rem;margin-bottom:1rem;font-size:1rem;font-weight:600;color:#8b949e;text-transform:uppercase;letter-spacing:.05em">Progression dans le temps</h2>
-    <div style="background:#161b22;border:1px solid #21262d;border-radius:8px;padding:1.25rem">
-      <canvas id="progress-chart"></canvas>
+<div class="landing">
+  <div class="landing-hero">
+    <span class="landing-duck">🦆</span>
+    <div class="landing-title">
+      <span class="logo-op">OPERATION</span>
+      <span class="logo-name" style="font-size:1.6rem">CANARDS</span>
+      <span class="logo-sub">DISPARUS</span>
     </div>
+    <p class="landing-subtitle">DuckDB SQL CTF</p>
   </div>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/date-fns@3.6.0/cdn.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
-  <script type="module" src="app.js"></script>
+
+  <div class="landing-cards">
+    <a href="scenarios/" class="landing-card">
+      <span class="landing-card-icon">⬡</span>
+      <span class="landing-card-title">SCENARIOS</span>
+      <span class="landing-card-desc">Explorez les 4 scenarios d'enquete et trouvez les flags</span>
+    </a>
+    <a href="leaderboard/" class="landing-card">
+      <span class="landing-card-icon">◈</span>
+      <span class="landing-card-title">LEADERBOARD</span>
+      <span class="landing-card-desc">Classement en temps reel des participants</span>
+    </a>
+    <a href="map/" class="landing-card">
+      <span class="landing-card-icon">◉</span>
+      <span class="landing-card-title">CARTE</span>
+      <span class="landing-card-desc">Visualisez les lieux lies a l'enquete</span>
+    </a>
+  </div>
+</div>
+
 </body>
 </html>

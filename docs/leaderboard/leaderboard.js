@@ -3,7 +3,7 @@ const S3_BUCKET = "duckdb-sql-ctf";
 const S3_REGION = "eu-west-1";
 const S3_PREFIX = "leaderboard/results/";
 const S3_BASE_URL = `https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com`;
-const IS_LOCAL = false; // bascule en local pour tests (doit être lancé depuis la racine du projet avec `python -m http.server`)
+const IS_LOCAL = false;
 const LOCAL_RESULTS_URL = `${location.origin}/dev-data/results.parquet`;
 const REFRESH_INTERVAL_MS = 30_000;
 
@@ -12,13 +12,12 @@ function scoreForRank(rank) {
   return Math.max(50, 100 - (rank - 1) * 10);
 }
 
-// === S3 file listing (glob workaround for DuckDB-WASM) ===
+// === S3 file listing ===
 async function listParquetFiles() {
   const urls = [];
   let continuationToken = null;
 
   if (IS_LOCAL) {
-    // En mode local, on suppose qu'il n'y a qu'un seul fichier de résultats
     urls.push(LOCAL_RESULTS_URL);
     return urls;
   }
@@ -57,19 +56,18 @@ async function listParquetFiles() {
 // === DuckDB-WASM setup ===
 import * as duckdb from "https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.29.0/+esm";
 
-const status = document.getElementById("status");
-const thead = document.querySelector("#leaderboard thead tr");
-const tbody = document.querySelector("#leaderboard tbody");
-const updated = document.getElementById("updated");
+const status  = () => document.getElementById("status");
+const thead   = () => document.querySelector("#leaderboard thead tr");
+const tbody   = () => document.querySelector("#leaderboard tbody");
+const updated = () => document.getElementById("updated");
 
 let db;
-window._db = () => db; // debug: accès depuis la console navigateur
+window._db = () => db;
 
 async function initDB() {
   const JSDELIVR_BUNDLES = duckdb.getJsDelivrBundles();
   const bundle = await duckdb.selectBundle(JSDELIVR_BUNDLES);
 
-  // Workers can't be loaded cross-origin — use an inline worker that imports the script
   const workerUrl = URL.createObjectURL(
     new Blob([`importScripts("${bundle.mainWorker}");`], { type: "text/javascript" })
   );
@@ -89,7 +87,6 @@ async function fetchLeaderboard() {
   try {
     await conn.query(`INSTALL httpfs; LOAD httpfs;`);
   } catch {
-    // already installed
     await conn.query(`LOAD httpfs;`);
   }
 
@@ -101,27 +98,30 @@ async function fetchLeaderboard() {
         SELECT pseudo, scenario, solved_at
         FROM read_parquet([${urlList}])
       ),
+      deduplicated AS (
+        SELECT pseudo, scenario, MIN(solved_at) AS solved_at
+        FROM results
+        GROUP BY pseudo, scenario
+      ),
       ranked AS (
         SELECT
           pseudo,
           scenario,
           solved_at,
           ROW_NUMBER() OVER (PARTITION BY scenario ORDER BY solved_at ASC) AS rank
-        FROM results
+        FROM deduplicated
       )
       SELECT pseudo, scenario, rank, solved_at
       FROM ranked
       ORDER BY pseudo, scenario
     `);
   } catch {
-    // No results files yet
     await conn.close();
     return [];
   }
 
   await conn.close();
 
-  // Convert Arrow result to plain objects
   const rows = result.toArray().map((row) => ({
     pseudo: row.pseudo,
     scenario: row.scenario,
@@ -133,7 +133,6 @@ async function fetchLeaderboard() {
 }
 
 function computeScoreboard(rows) {
-  // Group by player
   const players = {};
   for (const { pseudo, scenario, rank } of rows) {
     if (!players[pseudo]) {
@@ -144,23 +143,42 @@ function computeScoreboard(rows) {
     players[pseudo].totalScore += pts;
   }
 
-  // Sort by total score desc, then by name
   return Object.values(players).sort(
     (a, b) => b.totalScore - a.totalScore || a.pseudo.localeCompare(b.pseudo)
   );
 }
 
-function renderScoreboard(scoreboard, scenarios) {
-  // En-têtes dynamiques
-  thead.innerHTML =
-    `<th>Rang</th><th>Joueur</th><th>Score</th>` +
-    scenarios.map(s => `<th>Scénario ${s}</th>`).join("");
+function renderPodium(scoreboard, rows) {
+  const places = [1, 2, 3];
+  places.forEach((place, i) => {
+    const card = document.getElementById(`podium-${place}`);
+    if (!card) return;
+    const player = scoreboard[i];
+    if (player) {
+      card.querySelector(".p-name").textContent = player.pseudo;
+      card.querySelector(".p-score").textContent = `${player.totalScore} pts`;
+    } else {
+      card.querySelector(".p-name").textContent = "\u2014";
+      card.querySelector(".p-score").textContent = "0 pts";
+    }
+  });
 
-  tbody.innerHTML = "";
+  const statPlayers = document.getElementById("stat-players");
+  const statSolved  = document.getElementById("stat-solved");
+  if (statPlayers) statPlayers.textContent = scoreboard.length;
+  if (statSolved)  statSolved.textContent  = rows.length;
+}
+
+function renderScoreboard(scoreboard, scenarios) {
+  thead().innerHTML =
+    `<th>Rang</th><th>Joueur</th><th>Score</th>` +
+    scenarios.map(s => `<th>Sc\u00e9nario ${s}</th>`).join("");
+
+  tbody().innerHTML = "";
 
   if (scoreboard.length === 0) {
     const cols = 3 + scenarios.length;
-    tbody.innerHTML = `<tr><td colspan="${cols}" style="color:#8b949e;padding:2rem">Aucun résultat pour l'instant — soyez le premier !</td></tr>`;
+    tbody().innerHTML = `<tr><td colspan="${cols}" style="color:#64748b;padding:2rem">Aucun r\u00e9sultat pour l\u2019instant \u2014 soyez le premier !</td></tr>`;
     return;
   }
 
@@ -177,19 +195,21 @@ function renderScoreboard(scoreboard, scenarios) {
       if (data) {
         cells += `<td class="solved">#${data.rank} (${data.pts}pts)</td>`;
       } else {
-        cells += `<td class="unsolved">—</td>`;
+        cells += `<td class="unsolved">\u2014</td>`;
       }
     }
 
     tr.innerHTML = cells;
-    tbody.appendChild(tr);
+    tbody().appendChild(tr);
   });
 }
 
-// Palette de couleurs pour les joueurs
+// === Chart ===
+
 const PLAYER_COLORS = [
-  "#58a6ff", "#3fb950", "#f0c000", "#f0883e",
-  "#bc8cff", "#79c0ff", "#56d364", "#ffa657",
+  "#5b9cf6", "#3fb950", "#f0c000", "#f0883e",
+  "#bc8cff", "#ff6b6b", "#56d364", "#ffa657",
+  "#79c0ff", "#ffb3c6", "#aff5b4", "#ffd700",
 ];
 
 function computeTimeSeries(rows) {
@@ -273,28 +293,40 @@ function renderChart(rows) {
     plugins: [highlightPlugin],
     options: {
       responsive: true,
+      maintainAspectRatio: false,
       animation: false,
       scales: {
         x: {
           type: "time",
           time: { tooltipFormat: "HH:mm:ss", displayFormats: { minute: "HH:mm", hour: "HH:mm" } },
-          ticks: { color: "#8b949e" },
-          grid: { color: "#21262d" },
+          ticks: { color: "#4b6080", font: { size: 10, family: "'IBM Plex Mono', monospace" } },
+          grid: { color: "rgba(255,255,255,0.03)" },
+          border: { color: "#1e2d47" },
         },
         y: {
           beginAtZero: true,
-          ticks: { color: "#8b949e", stepSize: 50 },
-          grid: { color: "#21262d" },
-          title: { display: true, text: "Score cumulé", color: "#8b949e" },
+          ticks: { color: "#4b6080", stepSize: 100, font: { size: 10, family: "'IBM Plex Mono', monospace" } },
+          grid: { color: "rgba(255,255,255,0.03)" },
+          border: { color: "#1e2d47" },
         },
       },
       plugins: {
-        legend: { labels: { color: "#e6edf3" } },
+        legend: {
+          position: "bottom",
+          labels: { color: "#7a9ab8", boxWidth: 10, boxHeight: 2, padding: 14, font: { size: 10, family: "'IBM Plex Mono', monospace" } },
+        },
         tooltip: {
+          backgroundColor: "#111827",
+          borderColor: "#1e2d47",
+          borderWidth: 1,
+          titleColor: "#d4dff0",
+          bodyColor: "#7a9ab8",
+          titleFont: { family: "'IBM Plex Mono', monospace", size: 11 },
+          bodyFont: { family: "'IBM Plex Mono', monospace", size: 11 },
           callbacks: {
             label: (ctx) => {
               const { rank, scenario, pts } = ctx.raw;
-              return ` ${ctx.dataset.label} — Scénario ${scenario} · #${rank} · +${pts} pts → ${ctx.parsed.y} pts`;
+              return ` ${ctx.dataset.label} \u2014 Sc\u00e9nario ${scenario} \u00b7 #${rank} \u00b7 +${pts} pts \u2192 ${ctx.parsed.y} pts`;
             },
           },
         },
@@ -309,30 +341,35 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
+function setStatus(msg) { const el = status(); if (el) el.textContent = msg; }
+
 async function refresh() {
   try {
-    status.textContent = "Refreshing...";
+    setStatus("Refreshing...");
     const rows = await fetchLeaderboard();
     const scenarios = [...new Set(rows.map(r => r.scenario))].sort((a, b) => a - b);
     const scoreboard = computeScoreboard(rows);
+    renderPodium(scoreboard, rows);
     renderScoreboard(scoreboard, scenarios);
     renderChart(rows);
-    status.textContent = "";
-    updated.textContent = `Last updated: ${new Date().toLocaleTimeString()}`;
+    setStatus("");
+    const _u = updated(); if (_u) _u.textContent = `Last updated: ${new Date().toLocaleTimeString()}`;
   } catch (err) {
-    status.textContent = `Error: ${err.message}`;
+    setStatus(`Error: ${err.message}`);
     console.error(err);
   }
 }
 
+// === Main ===
+
 async function main() {
   try {
     await initDB();
-    status.textContent = "Fetching results...";
+    setStatus("Fetching results...");
     await refresh();
     setInterval(refresh, REFRESH_INTERVAL_MS);
   } catch (err) {
-    status.textContent = `Failed to initialize: ${err.message}`;
+    setStatus(`Failed to initialize: ${err.message}`);
     console.error(err);
   }
 }

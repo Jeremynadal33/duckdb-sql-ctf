@@ -1,5 +1,7 @@
 import json
+from pathlib import Path
 
+import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 
@@ -10,6 +12,13 @@ from data_generator.generators.scenario2_parquet import (
     _build_employee_flag,
     generate_parquet,
 )
+
+
+def _read_chunked_table(output_dir: Path, table_name: str) -> pa.Table:
+    """Read all parquet chunks from a subdirectory and concatenate."""
+    table_dir = output_dir / table_name
+    tables = [pq.read_table(f) for f in sorted(table_dir.glob("*.parquet"))]
+    return pa.concat_tables(tables)
 
 
 class TestFlagParts:
@@ -31,30 +40,45 @@ class TestGenerateParquet:
         return tmp_path
 
     def test_files_created(self, output_dir):
-        assert (output_dir / "employees.parquet").exists()
-        assert (output_dir / "badges.parquet").exists()
-        assert (output_dir / "departments.parquet").exists()
+        assert (output_dir / "employees").is_dir()
+        assert (output_dir / "badges").is_dir()
+        assert (output_dir / "departments").is_dir()
+        assert list((output_dir / "employees").glob("*.parquet"))
+        assert list((output_dir / "badges").glob("*.parquet"))
+        assert list((output_dir / "departments").glob("*.parquet"))
         assert (output_dir / "README.md").exists()
 
+    def test_employees_have_multiple_chunks(self, output_dir):
+        chunks = list((output_dir / "employees").glob("*.parquet"))
+        assert len(chunks) >= 3
+
+    def test_badges_have_multiple_chunks(self, output_dir):
+        chunks = list((output_dir / "badges").glob("*.parquet"))
+        assert len(chunks) >= 3
+
+    def test_departments_have_multiple_chunks(self, output_dir):
+        chunks = list((output_dir / "departments").glob("*.parquet"))
+        assert len(chunks) >= 2
+
     def test_employee_count(self, output_dir):
-        table = pq.read_table(output_dir / "employees.parquet")
+        table = _read_chunked_table(output_dir, "employees")
         assert len(table) == NUM_EMPLOYEES
 
     def test_badge_count(self, output_dir):
-        table = pq.read_table(output_dir / "badges.parquet")
+        table = _read_chunked_table(output_dir, "badges")
         assert len(table) == NUM_EMPLOYEES  # one badge per employee
 
     def test_department_count(self, output_dir):
-        table = pq.read_table(output_dir / "departments.parquet")
+        table = _read_chunked_table(output_dir, "departments")
         assert len(table) == 10
 
     def test_quackie_chan_exists(self, output_dir):
-        table = pq.read_table(output_dir / "employees.parquet")
+        table = _read_chunked_table(output_dir, "employees")
         ids = table.column("id").to_pylist()
         assert QUACKIE_CHAN_EMPLOYEE_ID in ids
 
     def test_quackie_chan_metadata_has_flag(self, fake_config, output_dir):
-        table = pq.read_table(output_dir / "employees.parquet")
+        table = _read_chunked_table(output_dir, "employees")
         for i in range(len(table)):
             if table.column("id")[i].as_py() == QUACKIE_CHAN_EMPLOYEE_ID:
                 meta = json.loads(table.column("metadata")[i].as_py())
@@ -64,7 +88,7 @@ class TestGenerateParquet:
         pytest.fail("Quackie Chan not found")
 
     def test_badge_0042_inactive(self, output_dir):
-        table = pq.read_table(output_dir / "badges.parquet")
+        table = _read_chunked_table(output_dir, "badges")
         for i in range(len(table)):
             if table.column("badge_id")[i].as_py() == QUACKIE_CHAN_BADGE_ID:
                 assert table.column("status")[i].as_py() == "inactive"
@@ -72,7 +96,7 @@ class TestGenerateParquet:
         pytest.fail("BADGE-0042 not found")
 
     def test_badge_0042_metadata_has_flag(self, fake_config, output_dir):
-        table = pq.read_table(output_dir / "badges.parquet")
+        table = _read_chunked_table(output_dir, "badges")
         for i in range(len(table)):
             if table.column("badge_id")[i].as_py() == QUACKIE_CHAN_BADGE_ID:
                 meta = json.loads(table.column("metadata")[i].as_py())
@@ -81,7 +105,7 @@ class TestGenerateParquet:
         pytest.fail("BADGE-0042 not found")
 
     def test_other_employees_have_noise_metadata(self, output_dir):
-        table = pq.read_table(output_dir / "employees.parquet")
+        table = _read_chunked_table(output_dir, "employees")
         for i in range(len(table)):
             if table.column("id")[i].as_py() != QUACKIE_CHAN_EMPLOYEE_ID:
                 meta = json.loads(table.column("metadata")[i].as_py())
