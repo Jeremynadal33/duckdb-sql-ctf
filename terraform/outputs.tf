@@ -59,3 +59,8 @@ output "s3_results_url" {
   value       = "s3://${aws_s3_bucket.ctf.bucket}/leaderboard/results"
 }
 
+output "api_gateway_url" {
+  description = "API Gateway URL for pseudo registration"
+  value       = aws_apigatewayv2_stage.pseudo.invoke_url
+}
+

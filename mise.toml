@@ -94,6 +94,33 @@ echo ""
 terraform destroy $TARGETS
 """
 
+[tasks."tf:rm-pg"]
+description = "Supprimer les ressources PostgreSQL du state (débloquer destroy/apply)"
+dir = "terraform"
+run = """
+if ! PG_RESOURCES=$(terraform state list 2>&1); then
+  echo "ERROR: terraform state list failed:"
+  echo "$PG_RESOURCES"
+  echo ""
+  echo "Try running: mise run tf:init"
+  exit 1
+fi
+PG_RESOURCES=$(echo "$PG_RESOURCES" | grep '^postgresql_' || true)
+if [ -z "$PG_RESOURCES" ]; then
+  echo "Aucune ressource postgresql_ dans le state."
+  exit 0
+fi
+echo "=== Ressources PostgreSQL à retirer du state ==="
+echo "$PG_RESOURCES"
+echo ""
+echo "$PG_RESOURCES" | while read -r res; do
+  echo "Removing $res ..."
+  terraform state rm "$res"
+done
+echo ""
+echo "Done. Ces ressources ne seront plus gérées par Terraform."
+"""
+
 # ===== AWS =====
 
 [tasks."aws:login"]

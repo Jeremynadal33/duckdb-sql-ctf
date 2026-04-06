@@ -140,3 +140,63 @@ resource "aws_iam_role_policy_attachment" "lambda_answer_checker_logs" {
   role       = aws_iam_role.lambda_answer_checker.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
+
+# ──────────────────────────────────────────────
+# Lambda Pseudo Register
+# ──────────────────────────────────────────────
+
+resource "aws_iam_role" "lambda_pseudo_register" {
+  name = "${var.bucket_name}-lambda-pseudo-register"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect    = "Allow"
+        Principal = { Service = "lambda.amazonaws.com" }
+        Action    = "sts:AssumeRole"
+      }
+    ]
+  })
+
+  tags = { Name = "${var.bucket_name}-lambda-pseudo-register" }
+}
+
+resource "aws_iam_policy" "lambda_pseudo_register_s3" {
+  name        = "${var.bucket_name}-lambda-pseudo-register-s3"
+  description = "S3 access for pseudo registration Lambda"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "ListBucket"
+        Effect   = "Allow"
+        Action   = "s3:ListBucket"
+        Resource = aws_s3_bucket.ctf.arn
+      },
+      {
+        Sid    = "ReadWriteUsers"
+        Effect = "Allow"
+        Action = [
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:HeadObject",
+        ]
+        Resource = "${aws_s3_bucket.ctf.arn}/leaderboard/users/*"
+      }
+    ]
+  })
+
+  tags = { Name = "${var.bucket_name}-lambda-pseudo-register-s3" }
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_pseudo_register_s3" {
+  role       = aws_iam_role.lambda_pseudo_register.name
+  policy_arn = aws_iam_policy.lambda_pseudo_register_s3.arn
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_pseudo_register_logs" {
+  role       = aws_iam_role.lambda_pseudo_register.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
