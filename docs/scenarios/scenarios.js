@@ -107,7 +107,7 @@ function mdToPanel(raw) {
 
 // ── Dynamic scenario loading ──────────────────────────────────────
 
-const SCENARIO_FILES = [1, 2, 3, 4].map(n => `scenario-${n}.md`);
+const SCENARIO_FILES = [1, 2, 3, 4, 5].map(n => `scenario-${n}.md`);
 
 let _loadedRaw = null; // cache the markdown files (no need to re-fetch)
 

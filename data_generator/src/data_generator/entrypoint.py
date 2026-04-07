@@ -44,6 +44,25 @@ def parquet(
 
 
 @app.command()
+def iceberg(
+    output_dir: Path = typer.Option(
+        Path("output"), help="Local output directory for Iceberg table"
+    ),
+    upload: bool = typer.Option(True, help="Upload to S3 after generation"),
+    dev: bool = typer.Option(False, "--dev", help="Utiliser une config locale sans Terraform"),
+) -> None:
+    """Scenario 4: Generate Iceberg badges table with time-travel snapshots."""
+    from data_generator.config import dev_config, load_config
+    from data_generator.generators.scenario4_iceberg import generate_iceberg
+
+    config = dev_config() if dev else load_config()
+    table_path = generate_iceberg(config, output_dir, upload=upload and not dev)
+    typer.echo(f"Iceberg table: {table_path}")
+    if upload and not dev:
+        typer.echo("Uploaded to S3.")
+
+
+@app.command()
 def graph(
     output_dir: Path = typer.Option(
         Path("output"), help="Local output directory for the DuckDB file"
@@ -51,9 +70,9 @@ def graph(
     upload: bool = typer.Option(True, help="Upload to S3 after generation"),
     dev: bool = typer.Option(False, "--dev", help="Utiliser une config locale sans Terraform"),
 ) -> None:
-    """Scenario 4: Generate social_network.duckdb (persons + relationships for DuckPGQ)."""
+    """Scenario 5: Generate social_network.duckdb (persons + relationships for DuckPGQ)."""
     from data_generator.config import dev_config, load_config
-    from data_generator.generators.scenario4_graph import generate_graph
+    from data_generator.generators.scenario5_graph import generate_graph
 
     config = dev_config() if dev else load_config()
     db_path = generate_graph(config, output_dir, upload=upload and not dev)
@@ -63,13 +82,15 @@ def graph(
 
 
 @app.command()
-def postgres() -> None:
+def postgres(
+    upload: bool = typer.Option(True, help="Upload answer file to S3"),
+) -> None:
     """Scenario 3: Populate PostgreSQL tables."""
     from data_generator.config import load_config
     from data_generator.generators.scenario3_postgres import populate_postgres
 
     config = load_config()
-    populate_postgres(config)
+    populate_postgres(config, upload=upload)
     typer.echo("PostgreSQL tables populated.")
 
 
@@ -83,6 +104,7 @@ def all_scenarios(
     from data_generator.generators.scenario1_logs import generate_logs
     from data_generator.generators.scenario2_parquet import generate_and_upload_parquet
     from data_generator.generators.scenario3_postgres import populate_postgres
+    from data_generator.generators.scenario4_iceberg import generate_iceberg
 
     config = load_config()
 
@@ -93,6 +115,9 @@ def all_scenarios(
     generate_and_upload_parquet(config, output_dir, upload)
 
     typer.echo("Scenario 3: Populating PostgreSQL...")
-    populate_postgres(config)
+    populate_postgres(config, upload=upload)
+
+    typer.echo("Scenario 4: Generating Iceberg badges table...")
+    generate_iceberg(config, output_dir, upload=upload)
 
     typer.echo("All scenarios generated.")

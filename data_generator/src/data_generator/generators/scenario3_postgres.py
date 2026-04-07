@@ -16,8 +16,9 @@ from data_generator.constants import (
     DECOY_LON,
     FAKER_SEED,
     FIGURANT_NAMES,
-    FLAG_SCENARIO3_PLACEHOLDER,
+    GH_PAGES_BASE_URL,
     NUM_CITIES,
+    QUACKIE_DEATH_DATE,
     TARGET_CITY,
     TARGET_DATE,
     TARGET_LAT,
@@ -81,6 +82,19 @@ CITY_NOISE_NOTES = [
     "pas d'anomalie détectée",
     "quartier tranquille",
 ]
+
+
+FRENCH_MONTHS = [
+    "", "janvier", "février", "mars", "avril", "mai", "juin",
+    "juillet", "août", "septembre", "octobre", "novembre", "décembre",
+]
+
+
+def build_scenario3_flag() -> str:
+    """Compute the scenario 3 flag — a link to the hidden article on GH Pages."""
+    d = QUACKIE_DEATH_DATE
+    filename = f"le-canard-enchaine-{d.day}-{FRENCH_MONTHS[d.month]}-{d.year}.md"
+    return f"FLAG{{{GH_PAGES_BASE_URL}/{filename}}}"
 
 
 def _engine_url(config: CTFConfig) -> str:
@@ -316,14 +330,27 @@ def _create_cities(fake: Faker) -> list[CityInformation]:
     cities.append(
         CityInformation(
             city_name=DECOY_CITY,
-            city_metadata={"info": FLAG_SCENARIO3_PLACEHOLDER},
+            city_metadata={"info": build_scenario3_flag()},
         )
     )
 
     return cities
 
 
-def populate_postgres(config: CTFConfig) -> None:
+def _upload_answer_to_s3(config: CTFConfig) -> None:
+    """Upload the scenario 3 answer file to S3."""
+    import boto3
+
+    s3 = boto3.client("s3")
+    flag = build_scenario3_flag()
+    s3.put_object(
+        Bucket=config.s3_bucket_name,
+        Key="leaderboard/answers/scenario_3.txt",
+        Body=flag.encode("utf-8"),
+    )
+
+
+def populate_postgres(config: CTFConfig, upload: bool = True) -> None:
     """Create tables and populate them with data."""
     fake = Faker("fr_FR")
     Faker.seed(FAKER_SEED)
@@ -376,3 +403,7 @@ def populate_postgres(config: CTFConfig) -> None:
         session.add_all(cities)
 
         session.commit()
+
+    # Upload answer file to S3
+    if upload:
+        _upload_answer_to_s3(config)

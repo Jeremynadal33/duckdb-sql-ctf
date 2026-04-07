@@ -12,6 +12,7 @@ dependencies = [
     "pyarrow>=19",
     "duckdb>=1.1",
     "psycopg2-binary>=2.9",
+    "pyiceberg[s3fs,sql-sqlite]>=0.11.1",
     "mypy>=1.19.1",
 ]
 

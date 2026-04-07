@@ -42,11 +42,11 @@ def _random_noise(length: int = 16) -> str:
 
 
 def _build_employee_flag(config: CTFConfig) -> str:
-    return f"FLAG{{pg_host={config.db_host},pg_port={config.db_port},pg_user={config.pg_ro_user}"
-
-
-def _build_badge_flag(config: CTFConfig) -> str:
-    return f",pg_password={config.pg_ro_password},pg_dbname={config.db_name}}}"
+    return (
+        f"FLAG{{pg_host={config.db_host},pg_port={config.db_port},"
+        f"pg_user={config.pg_ro_user},pg_password={config.pg_ro_password},"
+        f"pg_dbname={config.db_name}}}"
+    )
 
 
 def _generate_departments() -> list[Department]:
@@ -104,7 +104,7 @@ def _generate_employees(fake: Faker, config: CTFConfig) -> list[Employee]:
 
 
 def _generate_badges(
-    fake: Faker, employees: list[Employee], config: CTFConfig
+    fake: Faker, employees: list[Employee],
 ) -> list[Badge]:
     badges: list[Badge] = []
 
@@ -116,7 +116,7 @@ def _generate_badges(
                     employee_id=emp.id,
                     issued_date=emp.hire_date + timedelta(days=14),
                     status="inactive",
-                    metadata=json.dumps({"info": _build_badge_flag(config)}),
+                    metadata=json.dumps({"info": "inactive - décédé"}),
                 )
             )
         else:
@@ -214,7 +214,7 @@ def generate_parquet(config: CTFConfig, output_dir: Path) -> Path:
 
     departments = _generate_departments()
     employees = _generate_employees(fake, config)
-    badges = _generate_badges(fake, employees, config)
+    badges = _generate_badges(fake, employees)
 
     _write_parquet_chunked(
         departments, DEPARTMENT_SCHEMA, output_dir, "departments", min_chunks=2, max_chunks=3
@@ -242,8 +242,8 @@ def upload_to_s3(config: CTFConfig, output_dir: Path) -> None:
     # Upload README
     s3.upload_file(str(output_dir / "README.md"), bucket, "data/README.md")
 
-    # Upload chunked parquet subdirectories
-    for table_name in ("employees", "badges", "departments"):
+    # Upload chunked parquet subdirectories (badges are handled by scenario 4 Iceberg generator)
+    for table_name in ("employees", "departments"):
         table_dir = output_dir / table_name
         for parquet_file in sorted(table_dir.glob("*.parquet")):
             s3_key = f"data/{table_name}/{parquet_file.name}"

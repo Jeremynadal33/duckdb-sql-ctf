@@ -1,4 +1,4 @@
-"""Scenario 4 — Generate a DuckDB file with persons + relationships tables for DuckPGQ."""
+"""Scenario 5 — Generate a DuckDB file with persons + relationships tables for DuckPGQ."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from data_generator.config import CTFConfig
 from data_generator.constants import (
     FAKER_SEED,
     FIGURANT_NAMES,
-    FLAG_SCENARIO4,
+    FLAG_SCENARIO5,
     QUACKIE_CHAN_EMPLOYEE_ID,
 )
 
@@ -101,7 +101,7 @@ def _build_relationships(fake: Faker, all_persons: list[dict]) -> list[dict]:
         "person_id_1": QUACKO_CHAN_ID,
         "person_id_2": QUACKIE_CHAN_EMPLOYEE_ID,
         "relationship_type": "frère",
-        "notes": FLAG_SCENARIO4,
+        "notes": FLAG_SCENARIO5,
     })
     used_pairs.add((QUACKO_CHAN_ID, QUACKIE_CHAN_EMPLOYEE_ID))
     rel_id += 1

@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 
 AWS_REGION = "eu-west-1"
 FAKER_SEED = 42
@@ -113,10 +113,15 @@ DEPARTMENTS = [
 
 NUM_CITIES = 500
 
-FLAG_SCENARIO4 = "FLAG{canards_anti_criminels_mission_accomplie}"
+FLAG_SCENARIO5 = "FLAG{canards_anti_criminels_mission_accomplie}"
 
 # Placeholder — will be replaced when graph access details are defined
-FLAG_SCENARIO3_PLACEHOLDER = "FLAG{graph_source=tbd,graph_access=tbd}"
+FLAG_SCENARIO4_PLACEHOLDER = "FLAG{graph_source=tbd,graph_access=tbd}"
+
+GH_PAGES_BASE_URL = "https://jeremynadal33.github.io/duckdb-sql-ctf"
+
+NUM_ICEBERG_SNAPSHOTS = 10
+FLAG_SNAPSHOT_INDEX = 2  # 0-indexed, the 3rd snapshot contains the real flag
 
 BADGE_STATUSES = ["active", "expired", "revoked"]
 
@@ -127,6 +132,7 @@ QUACKIE_CHAN_BADGE_ID = "BADGE-0042"
 # Update the following constants to get a more realistic scenario
 # Like target date to the day before the ctf, target city to where the ctf is given, etc.
 TARGET_DATE = date(2026, 4, 22)
+QUACKIE_DEATH_DATE = TARGET_DATE - timedelta(days=30)
 TARGET_CITY = "Paris"
 TARGET_LAT = 48.879226
 TARGET_LON = 2.283274
