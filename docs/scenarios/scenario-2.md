@@ -2,7 +2,11 @@
 numero: 2
 label: Archives
 titre: Les Archives du Lac
-techniques: httpfs, read_parquet, CREATE SECRET, jaro_winkler_similarity
+techniques:
+    - httpfs : https://duckdb.org/docs/extensions/httpfs/overview.html
+    - read_parquet : https://duckdb.org/docs/data/parquet/overview.html
+    - CREATE SECRET : https://duckdb.org/docs/sql/statements/create_secret.html
+    - jaro_winkler_similarity : https://duckdb.org/docs/sql/functions/text.html#jaro_winkler_similaritystring-1-string-2
 flag: FLAG{pg_host=...,pg_user=...,pg_password=...,pg_dbname=...}
 flag_note: Ces credentials donnent accès à la base PostgreSQL pour le scénario suivant.
 flag_label: FLAG ATTENDU

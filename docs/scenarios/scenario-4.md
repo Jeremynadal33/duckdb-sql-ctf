@@ -2,7 +2,11 @@
 numero: 4
 label: Voyage
 titre: Le Voyage dans le Temps
-techniques: iceberg ext., iceberg_scan, TIME TRAVEL, iceberg_snapshots
+techniques:
+    - iceberg ext. : https://duckdb.org/docs/extensions/iceberg/overview.html
+    - iceberg_scan : https://duckdb.org/docs/extensions/iceberg/overview.html#iceberg-scan
+    - TIME TRAVEL
+    - iceberg_snapshots : https://duckdb.org/docs/extensions/iceberg/overview.html#iceberg-snapshots
 flag: FLAG{...}
 flag_note: Ce flag donne accès aux données du graphe relationnel.
 flag_label: FLAG ATTENDU

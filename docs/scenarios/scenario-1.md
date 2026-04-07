@@ -2,7 +2,11 @@
 numero: 1
 label: Registres
 titre: Les Registres de la Bibliothèque
-techniques: read_json_auto, IS NULL, GROUP BY, ORDER BY
+techniques:
+    - read_json_auto : https://duckdb.org/docs/data/json/overview.html
+    - IS NULL
+    - GROUP BY : https://duckdb.org/docs/sql/query_syntax/groupby.html
+    - ORDER BY : https://duckdb.org/docs/sql/query_syntax/orderby.html
 flag: FLAG{aws_access_key_id=...,aws_secret_access_key=...,bucket=...}
 flag_note: Ces credentials donnent accès aux archives S3 pour le scénario suivant.
 flag_label: FLAG ATTENDU

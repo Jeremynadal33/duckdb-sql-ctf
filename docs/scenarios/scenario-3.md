@@ -2,7 +2,12 @@
 numero: 3
 label: Identité
 titre: L'Identité du Suspect
-techniques: postgres ext., ATTACH, JOIN, http_get, Nominatim
+techniques:
+    - postgres ext. : https://duckdb.org/docs/extensions/postgres.html
+    - ATTACH : https://duckdb.org/docs/sql/statements/attach.html
+    - JOIN
+    - read_text : https://duckdb.org/docs/sql/functions/utility.html#read_textfilename
+    - Nominatim : https://nominatim.org/release-docs/latest/api/Reverse/
 flag: FLAG{...}
 flag_note: Ce flag est un lien vers un article. Ouvrez-le dans votre navigateur.
 flag_label: FLAG ATTENDU
