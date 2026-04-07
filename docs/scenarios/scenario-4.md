@@ -2,50 +2,72 @@
 numero: 4
 label: Réseau
 titre: Le Réseau du Suspect
-techniques: DuckPGQ, PROPERTY GRAPH, GRAPH_TABLE, MATCH
-flag: FLAG{...}
+techniques: ATTACH, DuckPGQ, PROPERTY GRAPH, GRAPH_TABLE, MATCH
+flag: FLAG{canards_anti_criminels_mission_accomplie}
 flag_label: FLAG FINAL
 ---
 
-Le médecin est décédé, mais son badge a été utilisé. Qui dans son entourage aurait pu s'en servir ? Explorez le réseau de relations sociales et familiales — vous découvrirez un proche avec un profil troublant.
+Le médecin est décédé, son badge a été usurpé. Mais qui avait accès à son entourage ? L'administration vous transmet une base de données du **réseau social** de la bibliothèque. Chargez-la depuis S3 et explorez les relations — un proche de Quackie Chan a un profil particulièrement troublant.
 
 ## Objectifs
 
-1. Construire un **property graph** avec DuckPGQ
-2. Explorer le réseau du médecin décédé
-3. Identifier le proche le plus suspect
-4. Trouver la note qui révèle le **mobile** du crime
+1. Charger la base DuckDB depuis S3
+2. Explorer les tables `persons` et `relationships`
+3. Construire un **property graph** avec DuckPGQ
+4. Traverser le graphe depuis Quackie Chan
+5. Identifier le proche suspect et récupérer le flag dans la colonne `notes`
 
 ## Indices
 
-### Indice 1 — Activer DuckPGQ
+### Indice 1 — Charger la base depuis S3
+
+```sql
+INSTALL httpfs; LOAD httpfs;
+
+CREATE SECRET s3_secret (
+    TYPE S3,
+    KEY_ID 'votre_access_key',
+    SECRET 'votre_secret_key',
+    REGION 'eu-west-1'
+);
+
+ATTACH 's3://bucket/data/social_network.duckdb' AS social (READ_ONLY);
+SHOW ALL TABLES;
+```
+
+### Indice 2 — Explorer les tables
+
+```sql
+SELECT * FROM social.persons LIMIT 10;
+SELECT * FROM social.relationships LIMIT 10;
+```
+
+### Indice 3 — Activer DuckPGQ et créer le graphe
 
 ```sql
 INSTALL duckpgq FROM community;
 LOAD duckpgq;
-```
 
-### Indice 2 — Créer un property graph
-
-```sql
-CREATE PROPERTY GRAPH social_network
-VERTEX TABLES (persons)
+CREATE OR REPLACE PROPERTY GRAPH social_network
+VERTEX TABLES (social.persons)
 EDGE TABLES (
-    relationships
-    SOURCE KEY (person_id_1) REFERENCES persons (id)
-    DESTINATION KEY (person_id_2) REFERENCES persons (id)
+    social.relationships
+        SOURCE KEY (person_id_1) REFERENCES social.persons (id)
+        DESTINATION KEY (person_id_2) REFERENCES social.persons (id)
 );
 ```
 
-### Indice 3 — Requêter le graphe
+### Indice 4 — Traverser le graphe depuis Quackie Chan
 
 ```sql
 FROM GRAPH_TABLE (social_network
     MATCH (p1:persons)-[r:relationships]->(p2:persons)
-    WHERE p1.last_name = '???'
-    COLUMNS (p2.first_name, p2.last_name, r.relationship_type, r.notes)
+    WHERE p1.first_name = 'Quackie' AND p1.last_name = 'Chan'
+    COLUMNS (p2.first_name, p2.last_name, p2.occupation, r.relationship_type, r.notes)
 );
 ```
+
+Le flag se trouve dans la colonne `notes` de la relation avec le proche au profil suspect.
 
 ## Épilogue
 

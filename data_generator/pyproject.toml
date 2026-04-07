@@ -10,6 +10,7 @@ dependencies = [
     "faker>=37",
     "boto3>=1.36",
     "pyarrow>=19",
+    "duckdb>=1.1",
     "psycopg2-binary>=2.9",
     "mypy>=1.19.1",
 ]

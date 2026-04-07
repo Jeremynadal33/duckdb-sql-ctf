@@ -44,6 +44,25 @@ def parquet(
 
 
 @app.command()
+def graph(
+    output_dir: Path = typer.Option(
+        Path("output"), help="Local output directory for the DuckDB file"
+    ),
+    upload: bool = typer.Option(True, help="Upload to S3 after generation"),
+    dev: bool = typer.Option(False, "--dev", help="Utiliser une config locale sans Terraform"),
+) -> None:
+    """Scenario 4: Generate social_network.duckdb (persons + relationships for DuckPGQ)."""
+    from data_generator.config import dev_config, load_config
+    from data_generator.generators.scenario4_graph import generate_graph
+
+    config = dev_config() if dev else load_config()
+    db_path = generate_graph(config, output_dir, upload=upload and not dev)
+    typer.echo(f"DuckDB file: {db_path}")
+    if upload and not dev:
+        typer.echo("Uploaded to S3.")
+
+
+@app.command()
 def postgres() -> None:
     """Scenario 3: Populate PostgreSQL tables."""
     from data_generator.config import load_config
