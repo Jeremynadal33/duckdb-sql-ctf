@@ -58,52 +58,64 @@
   </header>
 
   <div class="content">
+    <div class="lb-layout">
 
-    <div class="podium-row">
-      <div id="podium-1" class="podium-card p-gold">
-        <div class="p-trophy">🏆</div>
-        <div class="p-place">1st PLACE</div>
-        <div class="p-name">—</div>
-        <div class="p-score">0 pts</div>
+      <div class="lb-main">
+        <div class="podium-row">
+          <div id="podium-1" class="podium-card p-gold">
+            <div class="p-trophy">🏆</div>
+            <div class="p-place">1st PLACE</div>
+            <div class="p-name">—</div>
+            <div class="p-score">0 pts</div>
+          </div>
+          <div id="podium-2" class="podium-card p-silver">
+            <div class="p-trophy">🥈</div>
+            <div class="p-place">2nd PLACE</div>
+            <div class="p-name">—</div>
+            <div class="p-score">0 pts</div>
+          </div>
+          <div id="podium-3" class="podium-card p-bronze">
+            <div class="p-trophy">🥉</div>
+            <div class="p-place">3rd PLACE</div>
+            <div class="p-name">—</div>
+            <div class="p-score">0 pts</div>
+          </div>
+          <div class="stat-card">
+            <div id="stat-players" class="stat-num">—</div>
+            <div class="stat-label">JOUEURS</div>
+          </div>
+          <div class="stat-card">
+            <div id="stat-solved" class="stat-num">—</div>
+            <div class="stat-label">FLAGS</div>
+          </div>
+        </div>
+
+        <p id="updated"></p>
+
+        <table id="leaderboard">
+          <thead><tr></tr></thead>
+          <tbody></tbody>
+        </table>
+
+        <div class="chart-box">
+          <canvas id="progress-chart"></canvas>
+        </div>
       </div>
-      <div id="podium-2" class="podium-card p-silver">
-        <div class="p-trophy">🥈</div>
-        <div class="p-place">2nd PLACE</div>
-        <div class="p-name">—</div>
-        <div class="p-score">0 pts</div>
-      </div>
-      <div id="podium-3" class="podium-card p-bronze">
-        <div class="p-trophy">🥉</div>
-        <div class="p-place">3rd PLACE</div>
-        <div class="p-name">—</div>
-        <div class="p-score">0 pts</div>
-      </div>
-      <div class="stat-card">
-        <div id="stat-players" class="stat-num">—</div>
-        <div class="stat-label">JOUEURS</div>
-      </div>
-      <div class="stat-card">
-        <div id="stat-solved" class="stat-num">—</div>
-        <div class="stat-label">FLAGS</div>
-      </div>
+
+      <aside class="lb-feed">
+        <div class="feed-header">ACTIVITE RECENTE</div>
+        <div id="feed-list" class="feed-list">
+          <div class="feed-empty">Chargement...</div>
+        </div>
+      </aside>
+
     </div>
-
-    <p id="updated"></p>
-
-    <table id="leaderboard">
-      <thead><tr></tr></thead>
-      <tbody></tbody>
-    </table>
-
-    <div class="chart-box">
-      <canvas id="progress-chart"></canvas>
-    </div>
-
   </div>
 </div>
 </div>
 
 <script src="../agent.js"></script>
+<script src="../data-agent.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/date-fns@3.6.0/cdn.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>

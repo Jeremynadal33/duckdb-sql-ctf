@@ -52,6 +52,7 @@
       <span class="topbar-label">SCENARIOS</span>
     </div>
     <div class="topbar-right">
+      <button id="submit-btn" class="submit-trigger">GLOBAL HELPERS</button>
       <span class="topbar-badge">DuckDB SQL CTF</span>
     </div>
   </header>
@@ -73,8 +74,31 @@
     <div id="scenario-chain" class="scenario-chain"></div>
     <div id="scenario-panels"></div>
 
-    <div class="submit-block">
-      <div class="submit-label">SOUMETTRE UN FLAG</div>
+  </div>
+</div>
+</div>
+
+<!-- Modal Global Helpers -->
+<div id="submit-overlay" class="submit-overlay" hidden>
+  <div id="submit-modal" class="submit-modal" role="dialog" aria-modal="true">
+
+    <div class="submit-modal-header">
+      <div class="submit-modal-stamp">GLOBAL HELPERS</div>
+      <button id="submit-close" class="submit-modal-close" aria-label="Fermer">&times;</button>
+    </div>
+
+    <div class="helper-tabs">
+      <button class="helper-tab active" data-tab="submit">SOUMETTRE UN FLAG</button>
+      <button class="helper-tab" data-tab="s3">EXPLORER S3</button>
+    </div>
+
+    <div class="helper-pane" id="helper-s3">
+      <p class="submit-modal-desc">Listez tous les fichiers disponibles sur le bucket S3 :</p>
+      <pre><code>SELECT * FROM glob('s3://duckdb-sql-ctf/**');</code></pre>
+    </div>
+
+    <div class="helper-pane active" id="helper-submit">
+      <p class="submit-modal-desc">Exécutez la requête suivante depuis DuckDB pour soumettre votre réponse.</p>
       <pre><code>INSTALL httpfs; LOAD httpfs;
 
 CREATE SECRET my_s3_secret (
@@ -91,11 +115,27 @@ COPY (
 
   </div>
 </div>
-</div>
 
 <script src="../agent.js"></script>
+<script src="../data-agent.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked@9/marked.min.js"></script>
 <script src="scenarios.js"></script>
+<script>
+  const overlay = document.getElementById('submit-overlay');
+  document.getElementById('submit-btn').addEventListener('click', () => { overlay.hidden = false; });
+  document.getElementById('submit-close').addEventListener('click', () => { overlay.hidden = true; });
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.hidden = true; });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') overlay.hidden = true; });
+
+  document.querySelectorAll('.helper-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.helper-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.helper-pane').forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('helper-' + tab.dataset.tab).classList.add('active');
+    });
+  });
+</script>
 
 </body>
 </html>
