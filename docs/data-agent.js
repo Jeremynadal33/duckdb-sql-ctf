@@ -66,11 +66,17 @@ async function _listParquetFiles() {
 
 async function _runLeader() {
   const db = await _initDuckDB();
+  let _lastKeys = '';
 
   async function poll() {
     try {
       const urls = await _listParquetFiles();
       if (urls.length === 0) return;
+
+      // Fingerprint the file list — skip DuckDB if nothing changed
+      const keysFingerprint = urls.join('|');
+      if (keysFingerprint === _lastKeys) return;
+      _lastKeys = keysFingerprint;
 
       const conn = await db.connect();
       try { await conn.query(`LOAD httpfs;`); } catch {}
