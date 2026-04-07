@@ -31,9 +31,21 @@ function showScenario(n) {
 
 function parseFm(text) {
   const meta = {};
+  let lastKey = null;
   for (const line of text.trim().split('\n')) {
-    const m = line.match(/^(\w+):\s*(.+)$/);
-    if (m) meta[m[1]] = m[2].trim();
+    // List item under previous key: "    - label" or "    - label : url"
+    const listMatch = line.match(/^\s+-\s+(.+)$/);
+    if (listMatch && lastKey) {
+      if (!Array.isArray(meta[lastKey])) meta[lastKey] = [];
+      meta[lastKey].push(listMatch[1].trim());
+      continue;
+    }
+    // Key with value: "key: value"
+    const kvMatch = line.match(/^(\w+):\s*(.*)$/);
+    if (kvMatch) {
+      lastKey = kvMatch[1];
+      meta[lastKey] = kvMatch[2].trim() || null;
+    }
   }
   return meta;
 }
@@ -70,8 +82,19 @@ function mdToPanel(raw) {
     else (sections[cur] ??= []).push(line);
   }
 
-  const numStr     = String(meta.numero || '?').padStart(2, '0');
-  const techniques = (meta.techniques || '').split(',').map(t => `<code>${t.trim()}</code>`).join('');
+  const numStr = String(meta.numero || '?').padStart(2, '0');
+
+  // techniques is now an array of "label" or "label : url" strings
+  const techniqueItems = Array.isArray(meta.techniques) ? meta.techniques : [];
+  const techniques = techniqueItems.map(entry => {
+    const sep = entry.indexOf(' : ');
+    if (sep !== -1) {
+      const label = entry.slice(0, sep).trim();
+      const url   = entry.slice(sep + 3).trim();
+      return `<a class="sc-tag-link" href="${url}" target="_blank" rel="noopener"><code>${label}</code></a>`;
+    }
+    return `<code>${entry}</code>`;
+  }).join('');
   const contextHTML  = marked.parse((sections['__context__'] || []).join('\n').trim());
   const stepsHTML    = buildSteps((sections['Objectifs'] || []).join('\n'));
   const hintsHTML    = buildHints((sections['Indices'] || []).join('\n'));

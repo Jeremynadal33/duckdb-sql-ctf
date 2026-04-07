@@ -2,7 +2,12 @@
 numero: 5
 label: Réseau
 titre: Le Réseau du Suspect
-techniques: ATTACH, DuckPGQ, PROPERTY GRAPH, GRAPH_TABLE, MATCH
+techniques:
+    - ATTACH : https://duckdb.org/docs/sql/statements/attach.html
+    - DuckPGQ : https://duckdb.org/docs/extensions/pgq.html
+    - PROPERTY GRAPH
+    - GRAPH_TABLE : https://duckdb.org/docs/extensions/pgq.html#graph-table-function
+    - MATCH
 flag: FLAG{canards_anti_criminels_mission_accomplie}
 flag_label: FLAG FINAL
 ---

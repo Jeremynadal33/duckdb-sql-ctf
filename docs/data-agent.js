@@ -8,9 +8,10 @@
  * a custom DOM event `ctf:data-updated` so pages can react.
  */
 
-const CTF_BC       = new BroadcastChannel('ctf-data');
-const CACHE_KEY    = 'ctf_data_cache';
-const POLL_MS      = 30_000;
+const CTF_BC        = new BroadcastChannel('ctf-data');
+const CACHE_KEY     = 'ctf_data_cache';
+const FINGERPRINT_KEY = 'ctf_data_fingerprint';
+const POLL_MS       = 30_000;
 const S3_BUCKET    = 'duckdb-sql-ctf';
 const S3_REGION    = 'eu-west-1';
 const S3_BASE_URL  = `https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com`;
@@ -74,7 +75,8 @@ function _getCacheAge() {
 
 async function _runLeader() {
   const db = await _initDuckDB();
-  let _lastKeys = '';
+  // Restore fingerprint from previous leader (survives page navigation)
+  let _lastKeys = localStorage.getItem(FINGERPRINT_KEY) ?? '';
 
   async function poll() {
     try {
@@ -85,6 +87,7 @@ async function _runLeader() {
       const keysFingerprint = urls.join('|');
       if (keysFingerprint === _lastKeys) return;
       _lastKeys = keysFingerprint;
+      localStorage.setItem(FINGERPRINT_KEY, keysFingerprint);
 
       const conn = await db.connect();
       try { await conn.query(`LOAD httpfs;`); } catch {}

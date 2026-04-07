@@ -308,6 +308,10 @@ body {
 
 .sc-tags { display: flex; flex-direction: column; gap: 0.2rem; }
 .sc-tags-label { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.15em; color: var(--c-soft); margin-bottom: 0.25rem; text-transform: uppercase; }
+
+.sc-tag-link { text-decoration: none; display: block; }
+.sc-tag-link code { transition: color 0.1s, border-color 0.1s; }
+.sc-tag-link:hover code { color: var(--c-accent); border-color: rgba(245,200,0,0.5); }
 .sc-tags code {
   display: block;
   font-size: 0.78rem;
