@@ -33,32 +33,59 @@ async function initDuckDB() {
   con = await db.connect();
 }
 
-// ── Query helpers ─────────────────────────────────────────────────
+// ── Query via GRAPH_TABLE (DuckPGQ) ──────────────────────────────
 
-async function queryPersons(prefix = 'social') {
-  const r = await con.query(
-    `SELECT id, first_name, last_name, occupation, notes FROM ${prefix}.persons`
-  );
-  return r.toArray().map(row => ({
-    id:         String(row.id),
-    first_name: row.first_name,
-    last_name:  row.last_name,
-    occupation: row.occupation ?? '',
-    notes:      row.notes ?? '',
-  }));
-}
+async function queryGraph(graphName = 'social_network') {
+  // All edges with both endpoint properties
+  const r = await con.query(`
+    FROM GRAPH_TABLE (${graphName}
+      MATCH (p1:persons)-[r:relationships]->(p2:persons)
+      COLUMNS (
+        p1.id           AS src_id,
+        p1.first_name   AS src_first_name,
+        p1.last_name    AS src_last_name,
+        p1.occupation   AS src_occupation,
+        p1.notes        AS src_notes,
+        p2.id           AS dst_id,
+        p2.first_name   AS dst_first_name,
+        p2.last_name    AS dst_last_name,
+        p2.occupation   AS dst_occupation,
+        p2.notes        AS dst_notes,
+        r.id            AS rel_id,
+        r.relationship_type,
+        r.notes         AS rel_notes
+      )
+    )
+  `);
 
-async function queryRelationships(prefix = 'social') {
-  const r = await con.query(
-    `SELECT id, person_id_1, person_id_2, relationship_type, notes FROM ${prefix}.relationships`
-  );
-  return r.toArray().map(row => ({
-    id:                String(row.id),
-    person_id_1:       String(row.person_id_1),
-    person_id_2:       String(row.person_id_2),
-    relationship_type: row.relationship_type,
-    notes:             row.notes ?? '',
-  }));
+  const rows = r.toArray();
+
+  // Deduplicate nodes from both endpoints
+  const nodesMap = new Map();
+  const edges = [];
+
+  for (const row of rows) {
+    for (const [id, fn, ln, occ, notes] of [
+      [row.src_id, row.src_first_name, row.src_last_name, row.src_occupation, row.src_notes],
+      [row.dst_id, row.dst_first_name, row.dst_last_name, row.dst_occupation, row.dst_notes],
+    ]) {
+      if (!nodesMap.has(String(id))) {
+        nodesMap.set(String(id), {
+          id: String(id), first_name: fn, last_name: ln,
+          occupation: occ ?? '', notes: notes ?? '',
+        });
+      }
+    }
+    edges.push({
+      id:                String(row.rel_id),
+      person_id_1:       String(row.src_id),
+      person_id_2:       String(row.dst_id),
+      relationship_type: row.relationship_type,
+      notes:             row.rel_notes ?? '',
+    });
+  }
+
+  return { persons: [...nodesMap.values()], relationships: edges };
 }
 
 // ── Load from uploaded .duckdb file ──────────────────────────────
@@ -76,8 +103,7 @@ async function loadFromFile(file) {
 
     await con.query(`ATTACH '${file.name}' AS social (READ_ONLY)`);
 
-    const persons       = await queryPersons();
-    const relationships = await queryRelationships();
+    const { persons, relationships } = await queryGraph('social.social_network');
     buildGraph(persons, relationships);
     setStatus('ok', `${persons.length} noeuds · ${relationships.length} liens`);
   } catch (e) {
@@ -105,33 +131,14 @@ async function loadFromS3(keyId, secret, bucket) {
       )
     `);
 
-    setStatus('loading', 'Lecture du graphe S3…');
+    setStatus('loading', 'Chargement du graphe S3…');
 
-    // Read graph_data.json (generated alongside network.duckdb)
-    const result = await con.query(
-      `SELECT content FROM read_text('s3://${bucket}/data/graph_data.json')`
-    );
-    const content = result.toArray()[0]?.content;
-    if (!content) throw new Error('graph_data.json vide ou introuvable');
+    try { await con.query('DETACH social'); } catch (_) {}
+    await con.query(`ATTACH 's3://${bucket}/data/social_network.duckdb' AS social (READ_ONLY)`);
 
-    const data = JSON.parse(content);
-    const nodes = data.nodes.map(n => n.data);
-    const edges = data.edges.map(e => e.data);
-
-    // Convert back to internal format for buildGraph
-    const persons = nodes.map(n => ({
-      id: n.id, first_name: n.label.split(' ')[0],
-      last_name: n.label.split(' ').slice(1).join(' '),
-      occupation: n.occupation ?? '', notes: n.notes ?? '',
-      isVictim: n.isVictim, isSuspect: n.isSuspect,
-    }));
-    const rels = edges.map(e => ({
-      id: e.id.replace('rel-', ''), person_id_1: e.source, person_id_2: e.target,
-      relationship_type: e.label, notes: e.notes ?? '',
-    }));
-
-    buildGraph(persons, rels);
-    setStatus('ok', `${persons.length} noeuds · ${rels.length} liens`);
+    const { persons, relationships } = await queryGraph('social.social_network');
+    buildGraph(persons, relationships);
+    setStatus('ok', `${persons.length} noeuds · ${relationships.length} liens`);
   } catch (e) {
     setStatus('err', 'Erreur : ' + e.message);
     console.error(e);
