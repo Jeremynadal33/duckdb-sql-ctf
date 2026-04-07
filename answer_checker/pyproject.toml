@@ -7,6 +7,7 @@ dependencies = [
     "duckdb>=1.2",
     "pyarrow>=19",
     "boto3>=1.36",
+    "mypy>=1.20.0",
 ]
 
 [dependency-groups]
@@ -21,3 +22,6 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/answer_checker"]
+
+[tool.mypy]
+ignore_missing_imports = true

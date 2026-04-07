@@ -10,14 +10,14 @@
 <div class="layout">
 
 <aside class="sidebar">
-  <div class="sidebar-logo">
+  <a class="sidebar-logo" href="../" style="text-decoration:none">
     <span class="logo-duck">🦆</span>
     <div class="logo-text">
       <span class="logo-op">OPERATION</span>
       <span class="logo-name">CANARDS</span>
       <span class="logo-sub">DISPARUS</span>
     </div>
-  </div>
+  </a>
 
   <nav class="sidebar-nav">
     <a class="nav-item active" href="../scenarios/">
@@ -32,10 +32,15 @@
       <span class="nav-icon">◉</span>
       <span>CARTE</span>
     </a>
+    <a class="nav-item" href="../graph/">
+      <span class="nav-icon">⬡</span>
+      <span>GRAPHE</span>
+    </a>
   </nav>
 
   <div class="sidebar-footer">
     <a href="../" class="back-link">&larr; ACCUEIL</a>
+    <span class="agent-badge"></span>
   </div>
 </aside>
 
@@ -88,6 +93,7 @@ COPY (
 </div>
 </div>
 
+<script src="../agent.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked@9/marked.min.js"></script>
 <script src="scenarios.js"></script>
 

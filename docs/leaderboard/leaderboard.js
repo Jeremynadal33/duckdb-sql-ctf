@@ -1,7 +1,7 @@
 // === Configuration ===
 const S3_BUCKET = "duckdb-sql-ctf";
 const S3_REGION = "eu-west-1";
-const S3_PREFIX = "leaderboard/results/";
+const S3_PREFIX = "leaderboard/ctf-events/";
 const S3_BASE_URL = `https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com`;
 const IS_LOCAL = false;
 const LOCAL_RESULTS_URL = `${location.origin}/dev-data/results.parquet`;
@@ -94,13 +94,17 @@ async function fetchLeaderboard() {
   let result;
   try {
     result = await conn.query(`
-      WITH results AS (
-        SELECT pseudo, scenario, solved_at
+      WITH events AS (
+        SELECT
+          json_extract_string(value, '$.pseudo') AS pseudo,
+          CAST(json_extract_string(value, '$.scenario') AS INTEGER) AS scenario,
+          timestamp AS solved_at
         FROM read_parquet([${urlList}])
+        WHERE action = 'FLAG_SUBMISSION_SUCCESS'
       ),
       deduplicated AS (
         SELECT pseudo, scenario, MIN(solved_at) AS solved_at
-        FROM results
+        FROM events
         GROUP BY pseudo, scenario
       ),
       ranked AS (

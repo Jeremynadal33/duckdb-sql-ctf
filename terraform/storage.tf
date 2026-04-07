@@ -37,21 +37,21 @@ resource "aws_s3_bucket_policy" "public_results" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid       = "PublicReadResults"
+        Sid       = "PublicReadCtfEvents"
         Effect    = "Allow"
         Principal = "*"
         Action    = "s3:GetObject"
-        Resource  = "${aws_s3_bucket.ctf.arn}/leaderboard/results/*"
+        Resource  = "${aws_s3_bucket.ctf.arn}/leaderboard/ctf-events/*"
       },
       {
-        Sid       = "PublicListResults"
+        Sid       = "PublicListCtfEvents"
         Effect    = "Allow"
         Principal = "*"
         Action    = "s3:ListBucket"
         Resource  = aws_s3_bucket.ctf.arn
         Condition = {
           StringLike = {
-            "s3:prefix" = ["leaderboard/results/*"]
+            "s3:prefix" = ["leaderboard/ctf-events/*"]
           }
         }
       }

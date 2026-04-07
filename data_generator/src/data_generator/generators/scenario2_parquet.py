@@ -50,7 +50,7 @@ def _build_badge_flag(config: CTFConfig) -> str:
 
 
 def _generate_departments() -> list[Department]:
-    return [Department(**d) for d in DEPARTMENTS]
+    return [Department.model_validate(d) for d in DEPARTMENTS]
 
 
 def _generate_employees(fake: Faker, config: CTFConfig) -> list[Employee]:

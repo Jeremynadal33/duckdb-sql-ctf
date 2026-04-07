@@ -49,6 +49,16 @@ description = "Générer et uploader les Parquet S3 — scénario 2 (requiert AW
 dir = "data_generator"
 run = "uv run ctf-generate parquet --upload"
 
+[tasks."generate:graph-dev"]
+description = "Générer social_network.duckdb en local — scénario 4 (sans AWS)"
+dir = "data_generator"
+run = "uv run ctf-generate graph --dev --no-upload --output-dir /tmp/ctf_scenario4"
+
+[tasks."generate:graph"]
+description = "Générer et uploader social_network.duckdb sur S3 — scénario 4 (requiert AWS)"
+dir = "data_generator"
+run = "uv run ctf-generate graph --upload"
+
 [tasks."generate:postgres"]
 description = "Peupler la base PostgreSQL — scénario 3 (requiert RDS)"
 dir = "data_generator"
@@ -94,11 +104,38 @@ echo ""
 terraform destroy $TARGETS
 """
 
+[tasks."tf:rm-pg"]
+description = "Supprimer les ressources PostgreSQL du state (débloquer destroy/apply)"
+dir = "terraform"
+run = """
+if ! PG_RESOURCES=$(terraform state list 2>&1); then
+  echo "ERROR: terraform state list failed:"
+  echo "$PG_RESOURCES"
+  echo ""
+  echo "Try running: mise run tf:init"
+  exit 1
+fi
+PG_RESOURCES=$(echo "$PG_RESOURCES" | grep '^postgresql_' || true)
+if [ -z "$PG_RESOURCES" ]; then
+  echo "Aucune ressource postgresql_ dans le state."
+  exit 0
+fi
+echo "=== Ressources PostgreSQL à retirer du state ==="
+echo "$PG_RESOURCES"
+echo ""
+echo "$PG_RESOURCES" | while read -r res; do
+  echo "Removing $res ..."
+  terraform state rm "$res"
+done
+echo ""
+echo "Done. Ces ressources ne seront plus gérées par Terraform."
+"""
+
 # ===== AWS =====
 
 [tasks."aws:login"]
 description = "Se connecter via AWS SSO (profil défini par AWS_PROFILE dans .env)"
-run = "aws sso login --profile $AWS_PROFILE"
+run = "aws sso login --profile ctf"
 
 # ===== Site web =====
 

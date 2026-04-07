@@ -4,7 +4,8 @@ from urllib.parse import unquote_plus
 
 import boto3
 
-from answer_checker.recorder import record_success
+from answer_checker.event_writer import write_event
+from answer_checker.register import _pseudo_exists
 from answer_checker.validator import check_flag, extract_submission, validate_schema
 
 logger = logging.getLogger(__name__)
@@ -30,17 +31,27 @@ def lambda_handler(event: dict, context: object) -> dict:
     logger.info("Downloaded to %s", local_path)
 
     if not validate_schema(local_path):
-        dlq_key = f"leaderboard/dead-letter-queue/{filename}"
-        logger.info("Schema mismatch for %s, copying to %s", filename, dlq_key)
-        s3.copy_object(
-            Bucket=bucket_name,
-            Key=dlq_key,
-            CopySource={"Bucket": bucket, "Key": key},
+        logger.info("Schema mismatch for %s", filename)
+        write_event(
+            action="FLAG_SUBMISSION_REJECTED",
+            value={"reason": "schema_mismatch", "filename": filename},
+            bucket=bucket_name,
+            region=region,
         )
         return {"status": "rejected", "reason": "schema_mismatch", "key": key}
 
     pseudo, scenario, flag = extract_submission(local_path)
     logger.info("Submission from pseudo=%s, scenario=%d", pseudo, scenario)
+
+    if not _pseudo_exists(pseudo):
+        logger.info("Unregistered user: %s", pseudo)
+        write_event(
+            action="FLAG_SUBMISSION_REJECTED",
+            value={"reason": "unregistered_user", "pseudo": pseudo, "scenario": scenario},
+            bucket=bucket_name,
+            region=region,
+        )
+        return {"status": "rejected", "reason": "unregistered_user", "key": key}
 
     answer_key = f"leaderboard/answers/scenario_{scenario}.txt"
     try:
@@ -48,25 +59,30 @@ def lambda_handler(event: dict, context: object) -> dict:
         expected_flag = response["Body"].read().decode("utf-8")
         logger.info("Loaded expected answer from %s", answer_key)
     except s3.exceptions.NoSuchKey:
-        dlq_key = f"leaderboard/dead-letter-queue/{filename}"
-        logger.error("No answer file found at %s, copying to %s", answer_key, dlq_key)
-        s3.copy_object(
-            Bucket=bucket_name,
-            Key=dlq_key,
-            CopySource={"Bucket": bucket, "Key": key},
+        logger.error("No answer file found at %s", answer_key)
+        write_event(
+            action="FLAG_SUBMISSION_REJECTED",
+            value={"reason": "unknown_scenario", "pseudo": pseudo, "scenario": scenario},
+            bucket=bucket_name,
+            region=region,
         )
         return {"status": "rejected", "reason": "unknown_scenario", "key": key}
 
     if not check_flag(flag, expected_flag):
-        dlq_key = f"leaderboard/dead-letter-queue/{filename}"
-        logger.info("Wrong flag from pseudo=%s for scenario=%d, copying to %s", pseudo, scenario, dlq_key)
-        s3.copy_object(
-            Bucket=bucket_name,
-            Key=dlq_key,
-            CopySource={"Bucket": bucket, "Key": key},
+        logger.info("Wrong flag from pseudo=%s for scenario=%d", pseudo, scenario)
+        write_event(
+            action="FLAG_SUBMISSION_REJECTED",
+            value={"reason": "wrong_flag", "pseudo": pseudo, "scenario": scenario},
+            bucket=bucket_name,
+            region=region,
         )
         return {"status": "rejected", "reason": "wrong_flag", "key": key}
 
-    output = record_success(pseudo, scenario, bucket_name, region)
+    output = write_event(
+        action="FLAG_SUBMISSION_SUCCESS",
+        value={"pseudo": pseudo, "scenario": scenario},
+        bucket=bucket_name,
+        region=region,
+    )
     logger.info("Correct flag! Recorded success for pseudo=%s, scenario=%d at %s", pseudo, scenario, output)
     return {"status": "accepted", "pseudo": pseudo, "scenario": scenario}

@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime
-from uuid import UUID
-
 from pydantic import BaseModel
 
 
@@ -12,7 +10,7 @@ class LogMetadata(BaseModel):
 
 
 class LibraryLog(BaseModel):
-    log_id: UUID
+    log_id: str
     document_type: str
     document_title: str
     borrower_name: str

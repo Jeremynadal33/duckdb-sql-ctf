@@ -10,6 +10,7 @@ dependencies = [
     "faker>=37",
     "boto3>=1.36",
     "pyarrow>=19",
+    "duckdb>=1.1",
     "psycopg2-binary>=2.9",
     "mypy>=1.19.1",
 ]
@@ -29,3 +30,6 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/data_generator"]
+
+[tool.mypy]
+ignore_missing_imports = true
