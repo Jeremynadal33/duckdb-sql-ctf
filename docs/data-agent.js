@@ -64,6 +64,14 @@ async function _listParquetFiles() {
   return urls;
 }
 
+function _getCacheAge() {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return Infinity;
+    return Date.now() - (JSON.parse(raw).ts ?? 0);
+  } catch { return Infinity; }
+}
+
 async function _runLeader() {
   const db = await _initDuckDB();
   let _lastKeys = '';
@@ -144,8 +152,14 @@ async function _runLeader() {
     }
   }
 
-  await poll();
-  setInterval(poll, POLL_MS);
+  // If cache is fresh, delay first poll to avoid redundant fetch on page navigation
+  const cacheAge = _getCacheAge();
+  if (cacheAge < POLL_MS) {
+    setTimeout(() => { poll(); setInterval(poll, POLL_MS); }, POLL_MS - cacheAge);
+  } else {
+    await poll();
+    setInterval(poll, POLL_MS);
+  }
 
   // Hold the lock forever (until tab closes)
   await new Promise(() => {});
