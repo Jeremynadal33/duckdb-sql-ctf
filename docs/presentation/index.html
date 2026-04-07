@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Presentation — DuckDB SQL CTF</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --c-bg:      #0b0f1a;
+      --c-sidebar: #060a12;
+      --c-surface: #111828;
+      --c-border:  #2a3f62;
+      --c-muted:   #6080aa;
+      --c-soft:    #a0bcdc;
+      --c-text:    #eaf2ff;
+      --c-accent:  #f5c800;
+      --c-green:   #2ecc71;
+      --c-blue:    #5ba3e8;
+      --c-red:     #e74c3c;
+    }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      font-family: "Courier New", Courier, monospace;
+      background: var(--c-bg);
+      color: var(--c-text);
+    }
+
+    /* ── SLIDE DECK ─────────────────────────────────────────────── */
+
+    .deck {
+      display: flex;
+      width: 100%;
+      height: 100vh;
+      overflow-x: auto;
+      overflow-y: hidden;
+      scroll-snap-type: x mandatory;
+      scroll-behavior: smooth;
+      scrollbar-width: none;
+    }
+    .deck::-webkit-scrollbar { display: none; }
+
+    .slide {
+      min-width: 100vw;
+      height: 100vh;
+      scroll-snap-align: start;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 4rem 8rem;
+      text-align: center;
+      position: relative;
+    }
+
+    /* ── TYPOGRAPHY ──────────────────────────────────────────────── */
+
+    .slide h1 {
+      font-size: 3.5rem;
+      color: var(--c-accent);
+      margin-bottom: 0.5rem;
+      letter-spacing: 0.05em;
+    }
+    .slide h2 {
+      font-size: 2.2rem;
+      color: var(--c-accent);
+      margin-bottom: 1.5rem;
+      letter-spacing: 0.05em;
+    }
+    .slide h3 {
+      font-size: 1.6rem;
+      color: var(--c-text);
+      margin-bottom: 1rem;
+    }
+    .slide p {
+      font-size: 1.4rem;
+      color: var(--c-soft);
+      line-height: 1.8;
+      max-width: 900px;
+    }
+    .slide ul {
+      font-size: 1.3rem;
+      color: var(--c-soft);
+      line-height: 2.2;
+      list-style: none;
+      text-align: left;
+      max-width: 800px;
+    }
+    .slide ul li::before {
+      content: "\25B8 ";
+      color: var(--c-accent);
+    }
+    .slide a {
+      color: var(--c-blue);
+      text-decoration: underline;
+    }
+    .slide a:hover { color: var(--c-accent); }
+    .slide code {
+      color: var(--c-accent);
+      background: rgba(0,0,0,0.3);
+      padding: 0.1em 0.4em;
+      font-size: 0.9em;
+    }
+    .slide .subtitle {
+      font-size: 1.6rem;
+      color: var(--c-soft);
+      margin-bottom: 1.5rem;
+    }
+    .slide .big-emoji {
+      font-size: 5rem;
+      margin-bottom: 1rem;
+    }
+    .slide .big-text {
+      font-size: 2.4rem;
+      font-style: italic;
+      color: var(--c-soft);
+      max-width: 800px;
+      line-height: 1.6;
+    }
+    .slide .small {
+      font-size: 1rem;
+      color: var(--c-muted);
+      margin-top: 1rem;
+    }
+
+    /* ── TWO COLUMN LAYOUT ──────────────────────────────────────── */
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+      max-width: 900px;
+      width: 100%;
+    }
+    .col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 2rem;
+      border: 1px solid var(--c-border);
+      background: var(--c-surface);
+    }
+    .col .name {
+      font-size: 1.8rem;
+      color: var(--c-accent);
+      font-weight: bold;
+    }
+    .col .company {
+      font-size: 1.2rem;
+      color: var(--c-text);
+    }
+    .col a {
+      font-size: 1rem;
+    }
+
+    /* ── REX CARD ───────────────────────────────────────────────── */
+
+    .rex-card {
+      background: var(--c-surface);
+      border: 1px solid var(--c-border);
+      padding: 2rem 3rem;
+      max-width: 800px;
+      width: 100%;
+      text-align: left;
+      margin-top: 1.5rem;
+    }
+    .rex-card .stat {
+      font-size: 2.5rem;
+      color: var(--c-accent);
+      font-weight: bold;
+      margin: 0.5rem 0;
+    }
+    .rex-card p {
+      font-size: 1.2rem;
+    }
+
+    /* ── ABOUT US SLIDE ──────────────────────────────────────────── */
+
+    #slide-2 {
+      flex-direction: column;
+      gap: 0;
+      text-align: left;
+    }
+
+    .about-main {
+      display: flex;
+      flex-direction: row;
+      gap: 3rem;
+      align-items: center;
+    }
+
+    .about-grid {
+      display: grid;
+      grid-template-columns: 200px 1fr 160px;
+      grid-template-rows: 1fr 1fr;
+      gap: 2rem 2.5rem;
+      align-items: center;
+    }
+
+    .about-photo {
+      width: 200px;
+      height: 220px;
+      border: 3px solid var(--c-border);
+      overflow: hidden;
+      background: var(--c-surface);
+    }
+    .about-photo img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .about-info {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+    }
+    .about-name {
+      font-size: 2.2rem;
+      font-weight: bold;
+      color: var(--c-text);
+      letter-spacing: 0.02em;
+    }
+    .about-role {
+      font-size: 1.1rem;
+      color: var(--c-muted);
+    }
+    .about-logos-banner {
+      height: 60px;
+      width: auto;
+      object-fit: contain;
+      margin-bottom: 2rem;
+    }
+
+    .about-qr {
+      width: 150px;
+      height: 150px;
+      background: #fff;
+      padding: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .about-qr img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .about-tagline {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      min-width: 250px;
+    }
+    .about-tagline h3 {
+      font-size: 2rem;
+      color: var(--c-text);
+      font-weight: bold;
+    }
+    .about-tagline p {
+      font-size: 1.1rem;
+      color: var(--c-muted);
+    }
+    .about-waves {
+      font-size: 1.8rem;
+      color: var(--c-border);
+      line-height: 1.4;
+      letter-spacing: 0.3em;
+    }
+
+    /* ── FULL-SLIDE IMAGE ────────────────────────────────────────── */
+
+    .slide-img {
+      max-width: 90vw;
+      max-height: 85vh;
+      object-fit: contain;
+      border-radius: 4px;
+    }
+
+    /* ── SCREENSHOT PLACEHOLDER ─────────────────────────────────── */
+
+    .screenshot {
+      max-width: 700px;
+      max-height: 350px;
+      margin-top: 1.5rem;
+      border: 1px solid var(--c-border);
+    }
+    .screenshot-placeholder {
+      width: 700px;
+      height: 300px;
+      border: 2px dashed var(--c-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--c-muted);
+      font-size: 1rem;
+      margin-top: 1.5rem;
+    }
+
+    /* ── NAVIGATION ─────────────────────────────────────────────── */
+
+    .dots {
+      position: fixed;
+      bottom: 1.5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 0.6rem;
+      z-index: 100;
+    }
+    .dots button {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 2px solid var(--c-muted);
+      background: transparent;
+      cursor: pointer;
+      padding: 0;
+      transition: all 0.2s;
+    }
+    .dots button:hover { border-color: var(--c-accent); }
+    .dots button.active {
+      background: var(--c-accent);
+      border-color: var(--c-accent);
+    }
+
+    .slide-counter {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 2rem;
+      font-size: 0.85rem;
+      color: var(--c-muted);
+      z-index: 100;
+    }
+
+    .home-link {
+      position: fixed;
+      top: 1.5rem;
+      left: 2rem;
+      color: var(--c-muted);
+      text-decoration: none;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      z-index: 100;
+    }
+    .home-link:hover { color: var(--c-accent); }
+
+    /* ── RESPONSIVE ─────────────────────────────────────────────── */
+
+    @media (max-width: 768px) {
+      .slide { padding: 2rem 1.5rem; }
+      .slide h1 { font-size: 2.2rem; }
+      .slide h2 { font-size: 1.6rem; }
+      .slide p  { font-size: 1.1rem; }
+      .slide ul { font-size: 1rem; }
+      .two-col { grid-template-columns: 1fr; gap: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="deck">
+
+  <!-- ─── SLIDE 1: Title / GitHub ─────────────────────────────── -->
+  <section class="slide" id="slide-1">
+    <div class="big-emoji">🦆</div>
+    <h1>OPERATION CANARDS DISPARUS</h1>
+    <p class="subtitle">DuckDB SQL CTF</p>
+    <p style="margin-top:2rem;">
+      <a href="https://github.com/Jeremynadal33/duckdb-sql-ctf" target="_blank">
+        https://github.com/Jeremynadal33/duckdb-sql-ctf
+      </a>
+    </p>
+    <ul style="margin-top:1.5rem;">
+      <li>Un navigateur web</li>
+      <li><a href="https://duckdb.org/install/?platform=macos&environment=cli" target="_blank">Installer DuckDB : <code>curl https://install.duckdb.org | sh</code></a></li>
+      <li>Envie d'enqueter</li>
+    </ul>
+  </section>
+
+  <!-- ─── SLIDE 2: About Us ──────────────────────────────────── -->
+  <section class="slide" id="slide-2" style="padding:2rem;">
+    <img src="assets/logos.png" alt="Ippon Technologies & Betclic" class="about-logos-banner">
+
+    <div class="about-main">
+      <div class="about-grid">
+        <!-- Row 1: Jeremy -->
+        <div class="about-photo">
+          <img src="assets/jeremy.png" alt="Jeremy Nadal">
+        </div>
+        <div class="about-info">
+          <span class="about-name">Jeremy Nadal</span>
+          <span class="about-role">Data Engineer</span>
+        </div>
+        <div class="about-qr">
+          <img src="assets/jeremy-qr.png" alt="QR Code Jeremy">
+        </div>
+
+        <!-- Row 2: Pablo -->
+        <div class="about-photo">
+          <img src="assets/pablo.png" alt="Pablo Farey">
+        </div>
+        <div class="about-info">
+          <span class="about-name">Pablo Farey</span>
+          <span class="about-role">Data Engineer</span>
+        </div>
+        <div class="about-qr">
+          <img src="assets/pablo-qr.png" alt="QR Code Pablo">
+        </div>
+      </div>
+
+      <!-- Tagline -->
+      <div class="about-tagline">
+        <div class="about-waves">~ ~ ~ ~ ~<br>~ ~ ~ ~ ~<br>~ ~ ~ ~ ~</div>
+        <h3>How we are</h3>
+        <p>Two funny people who love tech</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── SLIDE 3: What is DuckDB? ───────────────────────────── -->
+  <section class="slide" id="slide-3">
+    <h2>Qu'est-ce que DuckDB ?</h2>
+    <ul>
+      <li>Moteur de calcul OLAP in-process</li>
+      <li>Le "SQLite de l'analytique"</li>
+      <br>
+      <li>SQL-first : syntaxe riche et moderne</li>
+      <li>Open source, licence MIT</li>
+    </ul>
+    <p class="small">
+      <a href="https://duckdb.org/" target="_blank">duckdb.org</a>
+    </p>
+  </section>
+
+  <!-- ─── SLIDE 4: Why DuckDB? ───────────────────────────────── -->
+  <section class="slide" id="slide-4">
+    <h2>Pourquoi DuckDB ?</h2>
+    <ul>
+      <li>Performance exceptionnelle sur les requetes analytiques</li>
+      <li>Simplicite : un seul fichier, zero config (avant <a href="https://ducklake.select/docs/stable/specification/introduction">DuckLake</a> au début en tout cas)</li>
+      <li>Multi-format reading : Parquet, CSV, JSON, Postgres, Delta, Iceberg, GSheets, ...</li>
+      <li>Fonctionne partout : Python, R, Node, CLI, WASM</li>
+      <li>Ideal pour l'exploration et le prototypage, mais pas que !</li>
+    </ul>
+  </section>
+
+  <!-- ─── SLIDE 5: Architecture ──────────────────────────────── -->
+  <section class="slide" id="slide-5">
+    <h2>Comment ca marche ?</h2>
+    <ul>
+      <li>Stockage colonnaire optimise</li>
+      <li>Moteur d'execution vectorise</li>
+      <li>Zero dependance externe</li>
+      <li>Des stacks d'erreurs claires</li>
+      <li>Execution parallele automatique</li>
+      <li>Optimiseur de requetes avance</li>
+    </ul>
+    <p class="small" style="margin-top:1.5rem;">
+      <a href="https://duckdb.org/" target="_blank">duckdb.org</a>
+    </p>
+  </section>
+
+  <!-- ─── SLIDE 6: MotherDuck ────────────────────────────────── -->
+  <section class="slide" id="slide-6">
+    <h2>MotherDuck</h2>
+    <ul>
+      <li>DuckDB heberge dans le cloud</li>
+      <li>Serverless : pas d'infrastructure a gerer</li>
+      <li>Execution hybride : local + cloud</li>
+      <li>Partage de donnees simplifie</li>
+      <li>Interface web et integrations</li>
+    </ul>
+  </section>
+
+  <!-- ─── SLIDE 7: DuckDB WASM ───────────────────────────────── -->
+  <section class="slide" id="slide-7">
+    <h2>DuckDB dans le navigateur</h2>
+    <p>Grace a WebAssembly, DuckDB tourne directement dans votre navigateur.</p>
+    <ul style="margin-top:1rem;">
+      <li>Aucune installation requise</li>
+      <li>Les donnees restent cote client</li>
+      <li>Ce CTF l'utilise !</li>
+    </ul>
+    <p class="small" style="margin-top:1.5rem;">
+      <a href="https://duckdb.org/docs/current/clients/wasm/overview" target="_blank">Documentation WASM</a>
+    </p>
+  </section>
+
+  <!-- ─── SLIDE 8: Community & Extensions ────────────────────── -->
+  <section class="slide" id="slide-8">
+    <h2>Communaute & Extensions</h2>
+    <ul>
+      <li>Ecosysteme d'extensions riche et grandissant</li>
+      <li><code>httpfs</code> — lecture directe depuis S3 / HTTP</li>
+      <li><code>spatial</code> — donnees geospatiales</li>
+      <li><code>iceberg</code> — tables Apache Iceberg</li>
+      <li><code>postgres</code> — interroger Postgres directement</li>
+      <li>Communaute active : extensions communautaires</li>
+    </ul>
+  </section>
+
+  <!-- ─── SLIDE 9: Disclaimer ────────────────────────────────── -->
+  <section class="slide" id="slide-9">
+    <div class="big-emoji">⚠️</div>
+    <p class="big-text">
+      Nous ne sommes ni experts DuckDB, ni experts Iceberg.
+    </p>
+    <p class="small">Nous sommes des enthousiastes partageant nos decouvertes.</p>
+  </section>
+
+  <!-- ─── SLIDE 10: Big Data is Dead ──────────────────────────── -->
+  <section class="slide" id="slide-10">
+    <h2>Big Data is Dead</h2>
+    <p>La majorite des entreprises traitent moins de donnees qu'on ne le pense.</p>
+    <img class="slide-img" src="assets/small_data.png" alt="Bar chart — volume de donnees traite par les entreprises" style="margin-top:1.5rem;">
+    <p class="small">La plupart des workloads tiennent sur une seule machine.</p>
+  </section>
+
+  <!-- ─── SLIDE 11: REX Orange + dbt-duckdb ──────────────────── -->
+  <section class="slide" id="slide-11">
+    <h2>REX : Orange + dbt-duckdb</h2>
+    <div class="rex-card">
+      <h3>Data ingestion dans un cloud souverain</h3>
+      <ul>
+        <li>Utilisation de <code>dbt-duckdb</code> pour l'ingestion de donnees</li>
+        <li>Deploiement sur Kubernetes</li>
+        <li>Contexte cloud souverain (contraintes specifiques)</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ─── SLIDE 12: REX VPC Flow Logs / Okta ─────────────────── -->
+  <section class="slide" id="slide-12">
+    <h2>Processing Trillions of Records at Okta with Mini Serverless Databases</h2>
+    <div class="rex-card">
+      <p>Ingestion de VPC Flow Logs dans Snowflake</p>
+      <p class="stat">800 000 € / an</p>
+      <p>en couts d'ingestion</p>
+    </div>
+    <p style="margin-top:2rem;">
+      Okta REX :
+      <a href="https://www.youtube.com/watch?v=TrmJilG4GXk" target="_blank">
+        Voir la presentation
+      </a>
+    </p>
+  </section>
+
+  <!-- ─── SLIDE 13: REX 1TB with DuckDB ──────────────────────── -->
+  <section class="slide" id="slide-13">
+    <h2>Processing 1 TB with DuckDB in less than 30 seconds</h2>
+    <p class="big-text" style="font-style:normal;">
+      On peut traiter &gt; 1 To avec DuckDB
+    </p>
+    <div class="rex-card" style="margin-top:2rem; text-align:center;">
+      <p>"I processed 1 TB with DuckDB in 30 minutes"</p>
+      <p style="margin-top:1rem;">
+        <a href="https://blog.dataexpert.io/p/i-processed-1-tb-with-duckdb-in-30" target="_blank">
+          Lire l'article
+        </a>
+      </p>
+    </div>
+    <img src="assets/1to_query.png" alt="1 To query with DuckDB" style="max-width:350px; margin-top:1.5rem; border:1px solid var(--c-border);">
+  </section>
+
+  <!-- ─── SLIDE 14: Moins mais mieux : vers un Data Engineering plus simple et efficace ─────────────────────────── -->
+  <section class="slide" id="slide-14">
+    <h2>Moins mais mieux : vers un Data Engineering plus simple et efficace</h2>
+    <p>Polars vs DuckDB vs PySpark</p>
+    <div style="display:flex; gap:1.5rem; margin-top:1.5rem; justify-content:center; flex-wrap:wrap;">
+      <img src="assets/5gb.png" alt="Benchmark 5 Go" style="max-width:500px; border:1px solid var(--c-border);">
+      <img src="assets/75Gb.png" alt="Benchmark 75 Go" style="max-width:500px; border:1px solid var(--c-border);">
+      <img src="assets/325Gb.png" alt="Benchmark 325 Go" style="max-width:500px; border:1px solid var(--c-border);">
+    </div>
+    <p style="margin-top:1.5rem;">
+      <a href="https://www.youtube.com/watch?v=0O6FT6_-8kU" target="_blank">
+        Voir la présentation complète
+      </a>
+    </p>
+  </section>
+
+</div>
+
+<!-- Navigation -->
+<nav class="dots"></nav>
+<div class="slide-counter"></div>
+<a href="../" class="home-link">&larr; Accueil</a>
+
+<script>
+(function() {
+  const deck = document.querySelector('.deck');
+  const slides = document.querySelectorAll('.slide');
+  const dotsContainer = document.querySelector('.dots');
+  const counter = document.querySelector('.slide-counter');
+  const total = slides.length;
+  let current = 0;
+
+  // Generate dot buttons
+  slides.forEach(function(_, i) {
+    var btn = document.createElement('button');
+    btn.setAttribute('aria-label', 'Slide ' + (i + 1));
+    if (i === 0) btn.classList.add('active');
+    btn.addEventListener('click', function() { goTo(i); });
+    dotsContainer.appendChild(btn);
+  });
+
+  function goTo(index) {
+    current = Math.max(0, Math.min(index, total - 1));
+    slides[current].scrollIntoView({ behavior: 'smooth', inline: 'start' });
+    updateIndicators();
+  }
+
+  function updateIndicators() {
+    var dots = dotsContainer.querySelectorAll('button');
+    dots.forEach(function(btn, i) {
+      btn.classList.toggle('active', i === current);
+    });
+    counter.textContent = (current + 1) + ' / ' + total;
+  }
+
+  // Keyboard navigation
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); goTo(current + 1); }
+    if (e.key === 'ArrowLeft')  { e.preventDefault(); goTo(current - 1); }
+    if (e.key === 'Home')       { e.preventDefault(); goTo(0); }
+    if (e.key === 'End')        { e.preventDefault(); goTo(total - 1); }
+  });
+
+  // Sync on manual scroll
+  var scrollTimeout;
+  deck.addEventListener('scroll', function() {
+    clearTimeout(scrollTimeout);
+    scrollTimeout = setTimeout(function() {
+      current = Math.round(deck.scrollLeft / deck.offsetWidth);
+      updateIndicators();
+    }, 100);
+  });
+
+  // Hash navigation
+  function readHash() {
+    var match = window.location.hash.match(/^#slide-(\d+)$/);
+    if (match) {
+      var idx = parseInt(match[1], 10) - 1;
+      if (idx >= 0 && idx < total) goTo(idx);
+    }
+  }
+  readHash();
+  window.addEventListener('hashchange', readHash);
+
+  // Update hash on navigation
+  var origGoTo = goTo;
+  goTo = function(index) {
+    origGoTo(index);
+    history.replaceState(null, '', '#slide-' + (current + 1));
+  };
+
+  updateIndicators();
+})();
+</script>
+
+</body>
+</html>
