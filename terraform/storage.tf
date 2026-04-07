@@ -72,16 +72,18 @@ resource "aws_s3_object" "answer_scenario_2" {
   content = local.flag_scenario2
 }
 
-resource "aws_s3_object" "answer_scenario_3" {
-  bucket  = aws_s3_bucket.ctf.id
-  key     = "leaderboard/answers/scenario_3.txt"
-  content = local.flag_scenario3
-}
+# Scenario 3 answer is managed by the Python data generator (uploaded to S3 during generation)
 
 resource "aws_s3_object" "answer_scenario_4" {
   bucket  = aws_s3_bucket.ctf.id
   key     = "leaderboard/answers/scenario_4.txt"
   content = local.flag_scenario4
+}
+
+resource "aws_s3_object" "answer_scenario_5" {
+  bucket  = aws_s3_bucket.ctf.id
+  key     = "leaderboard/answers/scenario_5.txt"
+  content = local.flag_scenario5
 }
 
 resource "aws_s3_bucket_notification" "user_inputs" {

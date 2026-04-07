@@ -1,76 +1,57 @@
 ---
 numero: 4
-label: Réseau
-titre: Le Réseau du Suspect
-techniques: ATTACH, DuckPGQ, PROPERTY GRAPH, GRAPH_TABLE, MATCH
-flag: FLAG{canards_anti_criminels_mission_accomplie}
-flag_label: FLAG FINAL
+label: Voyage
+titre: Le Voyage dans le Temps
+techniques: iceberg ext., iceberg_scan, TIME TRAVEL, iceberg_snapshots
+flag: FLAG{...}
+flag_note: Ce flag donne accès aux données du graphe relationnel.
+flag_label: FLAG ATTENDU
 ---
 
-Le médecin est décédé, son badge a été usurpé. Mais qui avait accès à son entourage ? L'administration vous transmet une base de données du **réseau social** de la bibliothèque. Chargez-la depuis S3 et explorez les relations — un proche de Quackie Chan a un profil particulièrement troublant.
+Vous vous rendez à l'adresse de Quackie Chan. L'endroit est désert — personne ne semble y être passé depuis un moment. Sur la table, pourtant, vous trouvez un article du *Canard Enchaîné* daté du mois dernier. Le médecin est décédé. Son badge BADGE-0042 a pourtant continué d'être utilisé après sa mort… Mais par qui ?
+
+Les badges d'accès sont stockés sur S3 au format **Apache Iceberg**, un format de table qui conserve l'historique complet des modifications. Remontez dans le temps — avant la date du décès — pour retrouver les métadonnées originales du badge de Quackie.
 
 ## Objectifs
 
-1. Charger la base DuckDB depuis S3
-2. Explorer les tables `persons` et `relationships`
-3. Construire un **property graph** avec DuckPGQ
-4. Traverser le graphe depuis Quackie Chan
-5. Identifier le proche suspect et récupérer le flag dans la colonne `notes`
+1. Explorer le dossier `badges/` sur S3 et identifier le format Iceberg
+2. Installer l'extension Iceberg dans DuckDB
+3. Lister les **snapshots** disponibles et repérer les dates
+4. Interroger la table à un instant **antérieur au décès** de Quackie Chan
+5. Extraire le flag depuis les métadonnées du badge BADGE-0042
 
 ## Indices
 
-### Indice 1 — Charger la base depuis S3
+### Indice 1 — Installer l'extension Iceberg
 
 ```sql
-INSTALL httpfs; LOAD httpfs;
-
-CREATE SECRET s3_secret (
-    TYPE S3,
-    KEY_ID 'votre_access_key',
-    SECRET 'votre_secret_key',
-    REGION 'eu-west-1'
-);
-
-ATTACH 's3://bucket/data/social_network.duckdb' AS social (READ_ONLY);
-SHOW ALL TABLES;
+INSTALL iceberg; LOAD iceberg;
 ```
 
-### Indice 2 — Explorer les tables
+### Indice 2 — Scanner la table (dernier snapshot)
 
 ```sql
-SELECT * FROM social.persons LIMIT 10;
-SELECT * FROM social.relationships LIMIT 10;
+SELECT * FROM iceberg_scan('s3://bucket/data/badges/');
 ```
 
-### Indice 3 — Activer DuckPGQ et créer le graphe
+Vous remarquerez que le badge de Quackie est **inactive** — les métadonnées ne contiennent rien d'utile dans l'état actuel.
+
+### Indice 3 — Lister les snapshots
 
 ```sql
-INSTALL duckpgq FROM community;
-LOAD duckpgq;
-
-CREATE OR REPLACE PROPERTY GRAPH social_network
-VERTEX TABLES (social.persons)
-EDGE TABLES (
-    social.relationships
-        SOURCE KEY (person_id_1) REFERENCES social.persons (id)
-        DESTINATION KEY (person_id_2) REFERENCES social.persons (id)
-);
+SELECT * FROM iceberg_snapshots('s3://bucket/data/badges/');
 ```
 
-### Indice 4 — Traverser le graphe depuis Quackie Chan
+Comparez les dates des snapshots avec la date du décès mentionnée dans l'article du Canard Enchaîné.
+
+### Indice 4 — Voyager dans le temps
 
 ```sql
-FROM GRAPH_TABLE (social_network
-    MATCH (p1:persons)-[r:relationships]->(p2:persons)
-    WHERE p1.first_name = 'Quackie' AND p1.last_name = 'Chan'
-    COLUMNS (p2.first_name, p2.last_name, p2.occupation, r.relationship_type, r.notes)
-);
+SELECT * FROM iceberg_scan(
+    's3://bucket/data/badges/',
+    snapshot_from_timestamp => TIMESTAMP '2026-03-01'
+)
+WHERE badge_id = 'BADGE-0042';
 ```
 
-Le flag se trouve dans la colonne `notes` de la relation avec le proche au profil suspect.
-
-## Épilogue
-
-*Les agents du C.A.C. se rendent à l'adresse identifiée. Ils trouvent le suspect, incapable de fuir : il ne pouvait pas se résoudre à abandonner les 12 petits qu'il venait de récupérer. Ils étaient trop mignons.*
-
-*Affaire classée. Dossier archivé au 2ème buisson du Lac de Bordeaux.*
+Choisissez une date **avant le décès** pour retrouver l'état du badge quand Quackie était encore en vie.

@@ -50,12 +50,12 @@ dir = "data_generator"
 run = "uv run ctf-generate parquet --upload"
 
 [tasks."generate:graph-dev"]
-description = "Générer social_network.duckdb en local — scénario 4 (sans AWS)"
+description = "Générer network.duckdb en local — scénario 4 (sans AWS)"
 dir = "data_generator"
 run = "uv run ctf-generate graph --dev --no-upload --output-dir /tmp/ctf_scenario4"
 
 [tasks."generate:graph"]
-description = "Générer et uploader social_network.duckdb sur S3 — scénario 4 (requiert AWS)"
+description = "Générer et uploader network.duckdb sur S3 — scénario 4 (requiert AWS)"
 dir = "data_generator"
 run = "uv run ctf-generate graph --upload"
 

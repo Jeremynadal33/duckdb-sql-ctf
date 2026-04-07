@@ -4,7 +4,7 @@ label: Identité
 titre: L'Identité du Suspect
 techniques: postgres ext., ATTACH, JOIN, http_get, Nominatim
 flag: FLAG{...}
-flag_note: Ce flag donne accès aux données du graphe relationnel.
+flag_note: Ce flag est un lien vers un article. Ouvrez-le dans votre navigateur.
 flag_label: FLAG ATTENDU
 ---
 

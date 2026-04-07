@@ -107,7 +107,7 @@ async function loadFromS3(keyId, secret, bucket) {
 
     setStatus('loading', 'Lecture du graphe S3…');
 
-    // Read graph_data.json (generated alongside social_network.duckdb)
+    // Read graph_data.json (generated alongside network.duckdb)
     const result = await con.query(
       `SELECT content FROM read_text('s3://${bucket}/data/graph_data.json')`
     );

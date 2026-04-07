@@ -7,7 +7,7 @@ from faker import Faker
 from data_generator.constants import (
     DECOY_CITY,
     FAKER_SEED,
-    FLAG_SCENARIO3_PLACEHOLDER,
+    GH_PAGES_BASE_URL,
     NUM_CITIES,
     TARGET_CITY,
 )
@@ -15,6 +15,7 @@ from data_generator.generators.scenario3_postgres import (
     _create_cities,
     _create_key_persons,
     _generate_city_names,
+    build_scenario3_flag,
 )
 from data_generator.models.pg_models import Address, CityInformation, Person, Profession
 
@@ -63,7 +64,12 @@ class TestCities:
         fake = _make_fake()
         cities = _create_cities(fake)
         decoy = next(c for c in cities if c.city_name == DECOY_CITY)
-        assert decoy.city_metadata["info"] == FLAG_SCENARIO3_PLACEHOLDER
+        expected_flag = build_scenario3_flag()
+        assert decoy.city_metadata["info"] == expected_flag
+        assert GH_PAGES_BASE_URL in expected_flag
+        assert expected_flag.startswith("FLAG{")
+        assert expected_flag.endswith("}")
+        assert ".md" in expected_flag
 
     def test_target_has_hint(self):
         fake = _make_fake()
