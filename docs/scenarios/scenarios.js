@@ -1,11 +1,31 @@
-// ── Scenario rendering & loading ─────────────────────────────
+// ── Cache ─────────────────────────────────────────────────────────
+
+function getUnlockedFromCache(pseudo) {
+  const unlocked = new Set([1]);
+  if (!pseudo) return unlocked;
+  try {
+    const raw = localStorage.getItem('ctf_data_cache');
+    if (!raw) return unlocked;
+    const { rows } = JSON.parse(raw);
+    for (const row of (rows ?? [])) {
+      if (row.pseudo === pseudo) {
+        const sc = Number(row.scenario);
+        unlocked.add(sc);
+        unlocked.add(sc + 1);
+      }
+    }
+  } catch {}
+  return unlocked;
+}
+
+// ── Scenario rendering ────────────────────────────────────────────
 
 function showScenario(n) {
-  document.querySelectorAll(".chain-btn").forEach(b =>
-    b.classList.toggle("active", b.dataset.scenario === String(n))
+  document.querySelectorAll('.chain-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.scenario === String(n))
   );
-  document.querySelectorAll(".sc-panel").forEach(p => {
-    p.style.display = p.id === "scenario-panel-" + n ? "flex" : "none";
+  document.querySelectorAll('.sc-panel').forEach(p => {
+    p.style.display = p.id === 'scenario-panel-' + n ? 'flex' : 'none';
   });
 }
 
@@ -21,9 +41,9 @@ function parseFm(text) {
 function buildHints(md) {
   if (!md?.trim()) return '';
   return md.split(/(?=^### )/m).filter(p => p.trim()).map(part => {
-    const nl = part.indexOf('\n');
+    const nl    = part.indexOf('\n');
     const title = part.slice(4, nl).trim();
-    const body = marked.parse(part.slice(nl + 1).trim());
+    const body  = marked.parse(part.slice(nl + 1).trim());
     return `<details><summary>${title}</summary><div>${body}</div></details>`;
   }).join('');
 }
@@ -46,23 +66,16 @@ function mdToPanel(raw) {
   const sections = {};
   let cur = '__context__';
   for (const line of body.split('\n')) {
-    if (/^## /.test(line)) {
-      cur = line.slice(3).trim();
-      sections[cur] = [];
-    } else {
-      (sections[cur] ??= []).push(line);
-    }
+    if (/^## /.test(line)) { cur = line.slice(3).trim(); sections[cur] = []; }
+    else (sections[cur] ??= []).push(line);
   }
 
   const numStr     = String(meta.numero || '?').padStart(2, '0');
-  const techniques = (meta.techniques || '').split(',')
-    .map(t => `<code>${t.trim()}</code>`).join('');
-
+  const techniques = (meta.techniques || '').split(',').map(t => `<code>${t.trim()}</code>`).join('');
   const contextHTML  = marked.parse((sections['__context__'] || []).join('\n').trim());
   const stepsHTML    = buildSteps((sections['Objectifs'] || []).join('\n'));
   const hintsHTML    = buildHints((sections['Indices'] || []).join('\n'));
   const flagNote     = meta.flag_note ? `<p>${meta.flag_note}</p>` : '';
-
   const epilogueKey  = Object.keys(sections).find(k => /épilogue|epilogue/i.test(k));
   const epilogueHTML = epilogueKey
     ? `<div class="sc-epilogue">${marked.parse(sections[epilogueKey].join('\n').trim())}</div>`
@@ -92,61 +105,135 @@ function mdToPanel(raw) {
     </div>`;
 }
 
-// ── Dynamic scenario loading ─────────────────────────────────
+// ── Dynamic scenario loading ──────────────────────────────────────
 
 const SCENARIO_FILES = [1, 2, 3, 4].map(n => `scenario-${n}.md`);
 
-async function loadScenarios() {
-  const results = await Promise.all(SCENARIO_FILES.map(async file => {
-    try {
-      const res = await fetch(file);
-      if (!res.ok) return null;
-      const raw = await res.text();
-      const fmMatch = raw.match(/^---\n([\s\S]*?)\n---/);
-      const meta = fmMatch ? parseFm(fmMatch[1]) : {};
-      return { raw, meta };
-    } catch { return null; }
-  }));
+let _loadedRaw = null; // cache the markdown files (no need to re-fetch)
 
-  const scenarios = results
+async function loadScenarios() {
+  const pseudo   = localStorage.getItem('ctf_agent');
+  const unlocked = getUnlockedFromCache(pseudo);
+
+  // Fetch markdown files only once
+  if (!_loadedRaw) {
+    _loadedRaw = await Promise.all(SCENARIO_FILES.map(async file => {
+      try {
+        const res = await fetch(file);
+        if (!res.ok) return null;
+        const raw     = await res.text();
+        const fmMatch = raw.match(/^---\n([\s\S]*?)\n---/);
+        const meta    = fmMatch ? parseFm(fmMatch[1]) : {};
+        return { raw, meta };
+      } catch { return null; }
+    }));
+  }
+
+  const scenarios = _loadedRaw
     .filter(Boolean)
     .sort((a, b) => Number(a.meta.numero || 0) - Number(b.meta.numero || 0));
 
-  const chain = document.getElementById("scenario-chain");
-  const panelsContainer = document.getElementById("scenario-panels");
-  chain.innerHTML = "";
-  panelsContainer.innerHTML = "";
+  const chain           = document.getElementById('scenario-chain');
+  const panelsContainer = document.getElementById('scenario-panels');
+  chain.innerHTML           = '';
+  panelsContainer.innerHTML = '';
+
+  let firstUnlocked = null;
+  let activeScenario = null;
+
+  // Preserve currently visible scenario if still unlocked
+  const currentActive = document.querySelector('.chain-btn.active');
+  if (currentActive) activeScenario = Number(currentActive.dataset.scenario);
 
   scenarios.forEach(({ raw, meta }, i) => {
-    const num = meta.numero || (i + 1);
-    const numStr = String(num).padStart(2, '0');
-    const label = meta.label || numStr;
+    const num        = Number(meta.numero || (i + 1));
+    const numStr     = String(num).padStart(2, '0');
+    const label      = meta.label || numStr;
+    const isUnlocked = unlocked.has(num);
 
     if (i > 0) {
-      const sep = document.createElement("span");
-      sep.className = "chain-line";
+      const sep = document.createElement('span');
+      sep.className = 'chain-line';
       chain.appendChild(sep);
     }
-    const btn = document.createElement("button");
-    btn.className = "chain-btn" + (i === 0 ? " active" : "");
-    btn.dataset.scenario = num;
-    btn.innerHTML = `<span class="cbtn-num">${numStr}</span><span class="cbtn-lbl">${label}</span>`;
-    chain.appendChild(btn);
 
-    const panel = document.createElement("div");
-    panel.className = "sc-panel";
-    panel.id = "scenario-panel-" + num;
-    panel.innerHTML = mdToPanel(raw);
-    panelsContainer.appendChild(panel);
+    const btn = document.createElement('button');
+    btn.dataset.scenario = num;
+
+    if (isUnlocked) {
+      btn.className = 'chain-btn';
+      btn.innerHTML = `<span class="cbtn-num">${numStr}</span><span class="cbtn-lbl">${label}</span>`;
+      if (firstUnlocked === null) firstUnlocked = num;
+
+      const panel = document.createElement('div');
+      panel.className = 'sc-panel';
+      panel.id        = 'scenario-panel-' + num;
+      panel.innerHTML = mdToPanel(raw);
+      panelsContainer.appendChild(panel);
+    } else {
+      btn.className = 'chain-btn chain-btn-locked';
+      btn.disabled  = true;
+      btn.title     = 'Complétez le scénario précédent pour débloquer';
+      btn.innerHTML = `<span class="cbtn-num">${numStr}</span><span class="cbtn-lbl cbtn-lock">&#x1F512;</span>`;
+    }
+
+    chain.appendChild(btn);
   });
 
-  document.querySelectorAll(".chain-btn").forEach(b =>
-    b.addEventListener("click", () => showScenario(b.dataset.scenario))
+  document.querySelectorAll('.chain-btn:not([disabled])').forEach(b =>
+    b.addEventListener('click', () => {
+      document.querySelectorAll('.chain-btn').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      showScenario(b.dataset.scenario);
+    })
   );
 
-  if (scenarios.length > 0) {
-    showScenario(String(scenarios[0].meta.numero || 1));
+  // Restore active scenario if still unlocked, else show first
+  const targetScenario = (activeScenario && unlocked.has(activeScenario))
+    ? activeScenario
+    : firstUnlocked;
+
+  if (targetScenario !== null) {
+    document.querySelector(`.chain-btn[data-scenario="${targetScenario}"]`)?.classList.add('active');
+    showScenario(String(targetScenario));
   }
 }
 
-document.addEventListener("DOMContentLoaded", loadScenarios);
+// ── Boot ─────────────────────────────────────────────────────────
+
+let _currentUnlocked = new Set([1]);
+let _updating = false;
+
+function setsEqual(a, b) {
+  if (a.size !== b.size) return false;
+  for (const v of a) if (!b.has(v)) return false;
+  return true;
+}
+
+async function checkAndUpdate() {
+  if (_updating) return;
+  _updating = true;
+  try {
+    const pseudo      = localStorage.getItem('ctf_agent');
+    const newUnlocked = getUnlockedFromCache(pseudo);
+    if (!setsEqual(newUnlocked, _currentUnlocked)) {
+      _currentUnlocked = newUnlocked;
+      await loadScenarios();
+    }
+  } finally {
+    _updating = false;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  await loadScenarios();
+  _currentUnlocked = getUnlockedFromCache(localStorage.getItem('ctf_agent'));
+
+  // Cas 1 : même onglet est le leader (CustomEvent direct)
+  window.addEventListener('ctf:data-updated', checkAndUpdate);
+
+  // Cas 2 : un autre onglet est le leader (storage event cross-tab)
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'ctf_data_cache') checkAndUpdate();
+  });
+});

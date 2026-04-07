@@ -24,7 +24,7 @@ resource "aws_s3_bucket_cors_configuration" "ctf" {
     allowed_headers = ["*"]
     allowed_methods = ["GET", "HEAD"]
     allowed_origins = ["*"]
-    expose_headers  = ["ETag"]
+    expose_headers  = ["ETag", "Content-Range", "Content-Length", "Accept-Ranges"]
     max_age_seconds = 3600
   }
 }
