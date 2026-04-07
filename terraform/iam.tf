@@ -108,22 +108,20 @@ resource "aws_iam_policy" "lambda_answer_checker_s3" {
         Resource = aws_s3_bucket.ctf.arn
       },
       {
-        Sid    = "ReadUserInputs"
+        Sid    = "ReadUserInputsAndEvents"
         Effect = "Allow"
         Action = "s3:GetObject"
         Resource = [
           "${aws_s3_bucket.ctf.arn}/user-inputs/*",
           "${aws_s3_bucket.ctf.arn}/leaderboard/answers/*",
+          "${aws_s3_bucket.ctf.arn}/leaderboard/ctf-events/*",
         ]
       },
       {
-        Sid    = "WriteLeaderboardAndDLQ"
-        Effect = "Allow"
-        Action = "s3:PutObject"
-        Resource = [
-          "${aws_s3_bucket.ctf.arn}/leaderboard/dead-letter-queue/*",
-          "${aws_s3_bucket.ctf.arn}/leaderboard/results/*",
-        ]
+        Sid      = "WriteCtfEvents"
+        Effect   = "Allow"
+        Action   = "s3:PutObject"
+        Resource = "${aws_s3_bucket.ctf.arn}/leaderboard/ctf-events/*"
       }
     ]
   })
@@ -176,14 +174,13 @@ resource "aws_iam_policy" "lambda_pseudo_register_s3" {
         Resource = aws_s3_bucket.ctf.arn
       },
       {
-        Sid    = "ReadWriteUsers"
+        Sid    = "ReadWriteCtfEvents"
         Effect = "Allow"
         Action = [
           "s3:GetObject",
           "s3:PutObject",
-          "s3:HeadObject",
         ]
-        Resource = "${aws_s3_bucket.ctf.arn}/leaderboard/users/*"
+        Resource = "${aws_s3_bucket.ctf.arn}/leaderboard/ctf-events/*"
       }
     ]
   })

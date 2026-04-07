@@ -125,7 +125,7 @@ echo "Done. Ces ressources ne seront plus gérées par Terraform."
 
 [tasks."aws:login"]
 description = "Se connecter via AWS SSO (profil défini par AWS_PROFILE dans .env)"
-run = "aws sso login --profile $AWS_PROFILE"
+run = "aws sso login --profile ctf"
 
 # ===== Site web =====
 
