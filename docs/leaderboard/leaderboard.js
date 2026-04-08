@@ -35,7 +35,7 @@ function computeScoreboard(rows) {
   );
 }
 
-function renderPodium(scoreboard, rows) {
+function renderPodium(scoreboard, rows, playerCount) {
   [1, 2, 3].forEach((place, i) => {
     const card = document.getElementById(`podium-${place}`);
     if (!card) return;
@@ -45,7 +45,7 @@ function renderPodium(scoreboard, rows) {
   });
   const statPlayers = document.getElementById('stat-players');
   const statSolved  = document.getElementById('stat-solved');
-  if (statPlayers) statPlayers.textContent = scoreboard.length;
+  if (statPlayers) statPlayers.textContent = playerCount || scoreboard.length;
   if (statSolved)  statSolved.textContent  = rows.length;
 }
 
@@ -86,17 +86,31 @@ function renderFeed(events) {
     return;
   }
   list.innerHTML = events.map(ev => {
-    const isSuccess = ev.action === 'FLAG_SUBMISSION_SUCCESS';
+    const isSuccess      = ev.action === 'FLAG_SUBMISSION_SUCCESS';
+    const isHint         = ev.action === 'HINT_EXPANDED';
+    const isRegistration = ev.action === 'REGISTRATION';
     const time = ev.timestamp
       ? new Date(ev.timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
       : '';
-    const tag = isSuccess
-      ? `<span class="feed-tag feed-tag-success">SUCCESS</span>`
-      : `<span class="feed-tag feed-tag-rejected">REJECTED</span>`;
-    const detail = isSuccess
-      ? `<span class="feed-pseudo">${escapeHtml(ev.pseudo ?? '?')}</span> \u2014 Sc\u00e9nario <strong>${escapeHtml(ev.scenario ?? '?')}</strong>`
-      : `<span class="feed-pseudo">${escapeHtml(ev.pseudo ?? '?')}</span> \u2014 Sc\u00e9nario <strong>${escapeHtml(ev.scenario ?? '?')}</strong>${ev.reason ? `<div class="feed-reason">${escapeHtml(ev.reason)}</div>` : ''}`;
-    return `<div class="feed-item ${isSuccess ? 'feed-item-success' : 'feed-item-rejected'}">
+    let tag, detail, itemClass;
+    if (isRegistration) {
+      tag = `<span class="feed-tag feed-tag-register">REGISTER</span>`;
+      detail = `<span class="feed-pseudo">${escapeHtml(ev.pseudo ?? '?')}</span> a rejoint la partie`;
+      itemClass = 'feed-item-register';
+    } else if (isHint) {
+      tag = `<span class="feed-tag feed-tag-hint">HINT</span>`;
+      detail = `<span class="feed-pseudo">${escapeHtml(ev.pseudo ?? '?')}</span> \u2014 Sc\u00e9nario <strong>${escapeHtml(ev.scenario ?? '?')}</strong>${ev.hint_title ? `<div class="feed-reason">${escapeHtml(ev.hint_title)}</div>` : ''}`;
+      itemClass = 'feed-item-hint';
+    } else if (isSuccess) {
+      tag = `<span class="feed-tag feed-tag-success">SUCCESS</span>`;
+      detail = `<span class="feed-pseudo">${escapeHtml(ev.pseudo ?? '?')}</span> \u2014 Sc\u00e9nario <strong>${escapeHtml(ev.scenario ?? '?')}</strong>`;
+      itemClass = 'feed-item-success';
+    } else {
+      tag = `<span class="feed-tag feed-tag-rejected">REJECTED</span>`;
+      detail = `<span class="feed-pseudo">${escapeHtml(ev.pseudo ?? '?')}</span> \u2014 Sc\u00e9nario <strong>${escapeHtml(ev.scenario ?? '?')}</strong>${ev.reason ? `<div class="feed-reason">${escapeHtml(ev.reason)}</div>` : ''}`;
+      itemClass = 'feed-item-rejected';
+    }
+    return `<div class="feed-item ${itemClass}">
       <div class="feed-item-top">${tag}<span class="feed-time">${time}</span></div>
       <div class="feed-detail">${detail}</div>
     </div>`;
@@ -209,10 +223,10 @@ function renderChart(rows) {
 
 // === Render all ===
 
-function renderAll(rows, events) {
+function renderAll(rows, events, playerCount) {
   const scenarios  = [...new Set(rows.map(r => r.scenario))].sort((a, b) => a - b);
   const scoreboard = computeScoreboard(rows);
-  renderPodium(scoreboard, rows);
+  renderPodium(scoreboard, rows, playerCount);
   renderScoreboard(scoreboard, scenarios);
   renderChart(rows);
   renderFeed(events);
@@ -229,7 +243,7 @@ document.addEventListener('DOMContentLoaded', () => {
   })();
 
   if (cached?.rows) {
-    renderAll(cached.rows, cached.events ?? []);
+    renderAll(cached.rows, cached.events ?? [], cached.playerCount ?? 0);
     setStatus('');
   } else {
     setStatus('En attente des donn\u00e9es...');
@@ -237,7 +251,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Cas 1 : même onglet est le leader (CustomEvent direct)
   window.addEventListener('ctf:data-updated', ({ detail }) => {
-    renderAll(detail.rows, detail.events ?? []);
+    renderAll(detail.rows, detail.events ?? [], detail.playerCount ?? 0);
     setStatus('');
   });
 
@@ -245,8 +259,8 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('storage', (e) => {
     if (e.key !== CACHE_KEY) return;
     try {
-      const { rows, events } = JSON.parse(e.newValue);
-      renderAll(rows, events ?? []);
+      const { rows, events, playerCount } = JSON.parse(e.newValue);
+      renderAll(rows, events ?? [], playerCount ?? 0);
       setStatus('');
     } catch {}
   });

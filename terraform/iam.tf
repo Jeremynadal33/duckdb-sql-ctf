@@ -197,3 +197,59 @@ resource "aws_iam_role_policy_attachment" "lambda_pseudo_register_logs" {
   role       = aws_iam_role.lambda_pseudo_register.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
+
+# ──────────────────────────────────────────────
+# Lambda Hint Event
+# ──────────────────────────────────────────────
+
+resource "aws_iam_role" "lambda_hint_event" {
+  name = "${var.bucket_name}-lambda-hint-event"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect    = "Allow"
+        Principal = { Service = "lambda.amazonaws.com" }
+        Action    = "sts:AssumeRole"
+      }
+    ]
+  })
+
+  tags = { Name = "${var.bucket_name}-lambda-hint-event" }
+}
+
+resource "aws_iam_policy" "lambda_hint_event_s3" {
+  name        = "${var.bucket_name}-lambda-hint-event-s3"
+  description = "S3 access for hint event Lambda"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "ListBucket"
+        Effect   = "Allow"
+        Action   = "s3:ListBucket"
+        Resource = aws_s3_bucket.ctf.arn
+      },
+      {
+        Sid      = "WriteCtfEvents"
+        Effect   = "Allow"
+        Action   = "s3:PutObject"
+        Resource = "${aws_s3_bucket.ctf.arn}/leaderboard/ctf-events/*"
+      }
+    ]
+  })
+
+  tags = { Name = "${var.bucket_name}-lambda-hint-event-s3" }
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_hint_event_s3" {
+  role       = aws_iam_role.lambda_hint_event.name
+  policy_arn = aws_iam_policy.lambda_hint_event_s3.arn
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_hint_event_logs" {
+  role       = aws_iam_role.lambda_hint_event.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}

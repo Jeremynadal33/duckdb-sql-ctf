@@ -16,7 +16,7 @@ Chaque étape de l'enquête vous révèlera un **flag** au format `FLAG{...}` co
 
 ### Contexte
 
-La Bibliothèque du Lac vous transmet une archive `library_logs.zip` contenant les registres de prêts de la journée. Chaque fichier `.json` contient une centaine d'enregistrements de prêts. Certains documents n'ont pas été retournés.
+La Bibliothèque du Lac vous transmet une archive `library_logs.zip` contenant les registres de prêts de la journée. Un nombre anormal de documents n'ont pas été retournés.
 
 ### Objectif
 
@@ -36,7 +36,7 @@ Ces credentials vous donneront accès aux archives numériques pour le scenario 
 
 ```sql
 -- Lire tous les fichiers JSON d'un dossier
-SELECT * FROM read_json_auto('chemin/vers/logs/*.json');
+SELECT * FROM read_json('chemin/vers/logs/*.json');
 ```
 
 </details>
@@ -46,7 +46,7 @@ SELECT * FROM read_json_auto('chemin/vers/logs/*.json');
 
 ```sql
 -- Les documents non retournés ont un champ timestamp_return à NULL
-SELECT * FROM read_json_auto('logs/*.json')
+SELECT * FROM read_json('logs/*.json')
 WHERE timestamp_return IS NULL;
 ```
 
@@ -58,7 +58,7 @@ WHERE timestamp_return IS NULL;
 ```sql
 -- Compter les documents non retournés par type
 SELECT document_type, COUNT(*) as nb
-FROM read_json_auto('logs/*.json')
+FROM read_json('logs/*.json')
 WHERE timestamp_return IS NULL
 GROUP BY document_type
 ORDER BY nb DESC;
@@ -73,7 +73,7 @@ ORDER BY nb DESC;
 -- Les fragments sont dans le champ metadata.notes des documents suspects
 -- Pensez à l'ordre chronologique pour les remettre dans le bon sens...
 SELECT metadata.notes, timestamp_checkout
-FROM read_json_auto('logs/*.json')
+FROM read_json('logs/*.json')
 WHERE timestamp_return IS NULL
   AND document_type = '???'
 ORDER BY timestamp_checkout;

@@ -20,14 +20,14 @@ const S3_PREFIX    = 'leaderboard/ctf-events/';
 // ── Broadcast receiver (all tabs including leader) ───────────────
 CTF_BC.onmessage = ({ data }) => {
   if (data.type !== 'ctf-update') return;
-  _applyUpdate(data.rows, data.events);
+  _applyUpdate(data.rows, data.events, data.playerCount);
 };
 
-function _applyUpdate(rows, events) {
+function _applyUpdate(rows, events, playerCount) {
   try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify({ rows, events, ts: Date.now() }));
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ rows, events, playerCount, ts: Date.now() }));
   } catch {}
-  window.dispatchEvent(new CustomEvent('ctf:data-updated', { detail: { rows, events } }));
+  window.dispatchEvent(new CustomEvent('ctf:data-updated', { detail: { rows, events, playerCount } }));
 }
 
 // ── Leader logic ─────────────────────────────────────────────────
@@ -125,30 +125,52 @@ async function _runLeader() {
 
       try {
         const r = await conn.query(`
-          SELECT action,
-                 json_extract_string(value, '$.pseudo')   AS pseudo,
-                 json_extract_string(value, '$.scenario') AS scenario,
-                 json_extract_string(value, '$.reason')   AS reason,
-                 timestamp
-          FROM read_parquet([${urlList}])
-          WHERE action IN ('FLAG_SUBMISSION_SUCCESS', 'FLAG_SUBMISSION_REJECTED')
+          WITH raw AS (
+            SELECT action,
+                   json_extract_string(value, '$.pseudo')     AS pseudo,
+                   json_extract_string(value, '$.scenario')   AS scenario,
+                   json_extract_string(value, '$.reason')     AS reason,
+                   json_extract_string(value, '$.hint_title') AS hint_title,
+                   timestamp
+            FROM read_parquet([${urlList}])
+            WHERE action IN ('FLAG_SUBMISSION_SUCCESS', 'FLAG_SUBMISSION_REJECTED', 'HINT_EXPANDED', 'REGISTRATION')
+          ),
+          deduped_hints AS (
+            SELECT * FROM raw WHERE action != 'HINT_EXPANDED'
+            UNION ALL
+            SELECT action, pseudo, scenario, reason, hint_title, MIN(timestamp) AS timestamp
+            FROM raw WHERE action = 'HINT_EXPANDED'
+            GROUP BY action, pseudo, scenario, hint_title, reason
+          )
+          SELECT * FROM deduped_hints
           ORDER BY timestamp DESC
           LIMIT 50
         `);
         events = r.toArray().map(row => ({
-          action:    row.action,
-          pseudo:    row.pseudo,
-          scenario:  row.scenario,
-          reason:    row.reason,
-          timestamp: row.timestamp,
+          action:     row.action,
+          pseudo:     row.pseudo,
+          scenario:   row.scenario,
+          reason:     row.reason,
+          hint_title: row.hint_title,
+          timestamp:  row.timestamp,
         }));
       } catch (e) { console.warn('[data-agent] events query error', e); }
+
+      let playerCount = 0;
+      try {
+        const r = await conn.query(`
+          SELECT COUNT(DISTINCT json_extract_string(value, '$.pseudo')) AS cnt
+          FROM read_parquet([${urlList}])
+          WHERE action = 'REGISTRATION'
+        `);
+        playerCount = Number(r.toArray()[0]?.cnt ?? 0);
+      } catch (e) { console.warn('[data-agent] playerCount query error', e); }
 
       await conn.close();
 
       // Broadcast to all tabs (including self via _applyUpdate below)
-      CTF_BC.postMessage({ type: 'ctf-update', rows, events });
-      _applyUpdate(rows, events);
+      CTF_BC.postMessage({ type: 'ctf-update', rows, events, playerCount });
+      _applyUpdate(rows, events, playerCount);
 
     } catch (e) {
       console.warn('[data-agent] poll error:', e);

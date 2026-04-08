@@ -3,7 +3,7 @@ numero: 1
 label: Registres
 titre: Les Registres de la Bibliothèque
 techniques:
-    - read_json_auto : https://duckdb.org/docs/data/json/overview.html
+    - read_json : https://duckdb.org/docs/data/json/overview.html
     - IS NULL
     - GROUP BY : https://duckdb.org/docs/sql/query_syntax/groupby.html
     - ORDER BY : https://duckdb.org/docs/sql/query_syntax/orderby.html
@@ -18,41 +18,45 @@ La Bibliothèque du Lac vous transmet une archive [`library_logs.zip`](https://d
 1. Charger l'ensemble des fichiers JSON dans DuckDB
 2. Identifier les documents qui n'ont **pas été retournés**
 3. Déterminer quel **type de document** revient de façon suspecte
-4. Extraire le flag caché dans les **métadonnées** des documents suspects
 
 ## Indices
 
 ### Indice 1 — Charger des fichiers JSON
 
 ```sql
-SELECT * FROM read_json_auto('chemin/vers/logs/*.json');
+SELECT * FROM read_json('chemin/vers/logs/*.json');
 ```
 
-### Indice 2 — Filtrer les documents non retournés
-
-```sql
-SELECT * FROM read_json_auto('logs/*.json')
-WHERE timestamp_return IS NULL;
-```
-
-### Indice 3 — Identifier le type suspect
+### Indice 2 — Identifier le type suspect
 
 ```sql
 SELECT document_type, COUNT(*) AS nb
-FROM read_json_auto('logs/*.json')
+FROM read_json('logs/*.json')
 WHERE timestamp_return IS NULL
 GROUP BY document_type
 ORDER BY nb DESC;
 ```
 
-### Indice 4 — Reconstituer le flag
+### Indice 3 — Reconstituer le flag
 
 ```sql
-SELECT metadata.notes, timestamp_checkout
-FROM read_json_auto('logs/*.json')
-WHERE timestamp_return IS NULL
-  AND document_type = '???'
-ORDER BY timestamp_checkout;
+with data as (
+  select
+    metadata.notes as flag_part
+  from
+    read_json('logs/*.json')
+  where
+    timestamp_return is null
+    and document_type = '???'
+  order by
+    timestamp_checkout asc
+)
+
+select
+  array_to_string(array_agg(flag_part), '') as flag
+from
+  data
 ```
+
 
 Concaténez les fragments dans l'ordre chronologique.

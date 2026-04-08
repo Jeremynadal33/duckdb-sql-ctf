@@ -117,10 +117,6 @@ function mdToPanel(raw) {
       <div class="sc-context">${contextHTML}</div>
       <div class="sc-section">OBJECTIFS</div>
       <ol class="sc-steps">${stepsHTML}</ol>
-      <div class="sc-flag">
-        <div class="sc-flag-label">${isLastScenario ? 'FLAG FINAL' : 'SOUMISSION'}</div>
-        <p>Une fois le flag trouvé, soumettez-le via le bouton <strong>GLOBAL HELPERS</strong> en haut de page.</p>
-      </div>
       <div class="sc-section">INDICES</div>
       <div class="sc-hints">${hintsHTML}</div>
       ${epilogueHTML}
@@ -209,6 +205,26 @@ async function loadScenarios() {
       showScenario(b.dataset.scenario);
     })
   );
+
+  // Track hint expansions
+  panelsContainer.querySelectorAll('.sc-panel').forEach(panel => {
+    const scenario = Number(panel.id.replace('scenario-panel-', ''));
+    panel.querySelectorAll('details').forEach(details => {
+      details.addEventListener('toggle', () => {
+        if (!details.open) return;
+        const pseudo = localStorage.getItem('ctf_agent');
+        if (!pseudo) return;
+        const hintTitle = details.querySelector('summary')?.textContent || '';
+        fetch(`${API_URL}/hint-event`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pseudo, scenario, hint_title: hintTitle }),
+        })
+          .then(r => console.log('[hint-event]', r.status, hintTitle))
+          .catch(err => console.warn('[hint-event] error:', err));
+      });
+    });
+  });
 
   // Restore active scenario if still unlocked, else show first
   const targetScenario = (activeScenario && unlocked.has(activeScenario))
