@@ -49,7 +49,7 @@ def _build_key_persons() -> list[dict]:
             "first_name": "Quacko",
             "last_name": "Chan",
             "date_of_birth": date(1980, 4, 15).isoformat(),
-            "occupation": "Éleveur de canards",
+            "occupation": "Éleveur de chevaux",
             "notes": "Connu du service vétérinaire pour détention illégale d'animaux protégés.",
         },
     ]

@@ -6,11 +6,8 @@ techniques:
     - postgres ext. : https://duckdb.org/docs/extensions/postgres.html
     - ATTACH : https://duckdb.org/docs/sql/statements/attach.html
     - JOIN
-    - read_text : https://duckdb.org/docs/sql/functions/utility.html#read_textfilename
+    - http_client : https://duckdb.org/community_extensions/extensions/http_client
     - Nominatim : https://nominatim.org/release-docs/latest/api/Reverse/
-flag: FLAG{...}
-flag_note: Ce flag est un lien vers un article. Ouvrez-le dans votre navigateur.
-flag_label: FLAG ATTENDU
 ---
 
 Vous avez identifié l'employé et obtenu les accès PostgreSQL. L'enquête prend un tournant : le suspect a été retrouvé sans vie — victime d'un accident de chasse. Quelqu'un de son entourage a dû utiliser son badge…
@@ -19,8 +16,7 @@ Vous avez identifié l'employé et obtenu les accès PostgreSQL. L'enquête pren
 
 1. Se connecter à PostgreSQL depuis DuckDB
 2. Retrouver les informations complètes du suspect
-3. Déterminer sa **ville** via géocodage inversé (Nominatim)
-4. Consulter la table `city_information` pour le flag
+3. Déterminer sa **ville** via géocodage inversé (Nominatim). Y a t il quelque chose de particulier avec cette ville ? :thinking:
 
 ## Indices
 
@@ -38,12 +34,11 @@ ATTACH 'host=... port=5432 dbname=... user=... password=...'
 SHOW ALL TABLES;
 ```
 
-### Indice 3 — Jointures personne / profession / adresse
+### Indice 3 — Jointures personne / adresse
 
 ```sql
-SELECT p.first_name, p.last_name, pr.title, a.latitude, a.longitude
+SELECT p.first_name, p.last_name, a.latitude, a.longitude
 FROM ctfdb.persons p
-JOIN ctfdb.professions pr ON pr.person_id = p.id
 JOIN ctfdb.addresses a ON a.person_id = p.id
 WHERE a.is_current = true;
 ```
@@ -51,7 +46,7 @@ WHERE a.is_current = true;
 ### Indice 4 — Géocodage inversé avec Nominatim
 
 ```sql
-INSTALL httpfs; LOAD httpfs;
+INSTALL http_client FROM community; LOAD http_client;
 WITH req AS (
     SELECT http_get(
         'https://nominatim.openstreetmap.org/reverse',
@@ -62,6 +57,6 @@ WITH req AS (
 SELECT json_extract_string(response->>'body', '$.address.city') AS city FROM req;
 ```
 
-### Indice 5 — Chercher dans city_information
+### Indice 5 — Chercher des informations sur la ville
 
 Une fois la ville identifiée, regardez le champ `metadata` de la table `city_information` — certaines entrées contiennent des informations utiles.

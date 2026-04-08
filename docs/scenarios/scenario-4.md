@@ -7,9 +7,6 @@ techniques:
     - iceberg_scan : https://duckdb.org/docs/extensions/iceberg/overview.html#iceberg-scan
     - TIME TRAVEL
     - iceberg_snapshots : https://duckdb.org/docs/extensions/iceberg/overview.html#iceberg-snapshots
-flag: FLAG{...}
-flag_note: Ce flag donne accès aux données du graphe relationnel.
-flag_label: FLAG ATTENDU
 ---
 
 Vous vous rendez à l'adresse de Quackie Chan. L'endroit est désert — personne ne semble y être passé depuis un moment. Sur la table, pourtant, vous trouvez un article du *Canard Enchaîné* daté du mois dernier. Le médecin est décédé. Son badge BADGE-0042 a pourtant continué d'être utilisé après sa mort… Mais par qui ?

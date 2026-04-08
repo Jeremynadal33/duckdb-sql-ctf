@@ -44,6 +44,13 @@ resource "aws_s3_bucket_policy" "public_results" {
         Resource  = "${aws_s3_bucket.ctf.arn}/leaderboard/ctf-events/*"
       },
       {
+        Sid       = "PublicReadLibraryLogs"
+        Effect    = "Allow"
+        Principal = "*"
+        Action    = "s3:GetObject"
+        Resource  = "${aws_s3_bucket.ctf.arn}/data/library_logs.zip"
+      },
+      {
         Sid       = "PublicListCtfEvents"
         Effect    = "Allow"
         Principal = "*"

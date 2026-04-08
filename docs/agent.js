@@ -39,7 +39,7 @@ function injectModal() {
   overlay.id = 'agent-overlay';
   overlay.innerHTML = `
     <div id="agent-modal">
-      <div class="modal-stamp">OPERATION CANARDS DISPARUS</div>
+      <div class="modal-stamp">OPERATION DOSSIERS DISPARUS</div>
       <div class="modal-title">IDENTIFICATION AGENT</div>
       <p class="modal-desc">Entrez votre pseudo pour commencer l'enquête</p>
       <input id="agent-input" type="text" placeholder="Agent_Duck" maxlength="20" autocomplete="off" spellcheck="false">

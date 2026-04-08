@@ -70,7 +70,7 @@ EMPLOYERS_FR = [
     "Pharmacie de la Place",
     "Bibliothèque Municipale",
     "École Primaire Jules Ferry",
-    "Restaurant Le Canard Doré",
+    "Restaurant Le Poisson Doré",
     "Hôtel des Quais",
     "Banque Populaire Aquitaine",
 ]

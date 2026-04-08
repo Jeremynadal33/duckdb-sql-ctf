@@ -113,7 +113,7 @@ DEPARTMENTS = [
 
 NUM_CITIES = 500
 
-FLAG_SCENARIO5 = "FLAG{canards_anti_criminels_mission_accomplie}"
+FLAG_SCENARIO5 = "FLAG{cellule_anti_criminelle_mission_accomplie}"
 
 def flag_scenario4(bucket_name: str) -> str:
     """Build the scenario 4 flag from the S3 bucket name."""

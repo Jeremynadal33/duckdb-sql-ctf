@@ -14,15 +14,19 @@ def logs(
     output_dir: Path = typer.Option(
         Path("output"), help="Output directory for zip file"
     ),
+    upload: bool = typer.Option(True, help="Upload zip to S3 after generation"),
     dev: bool = typer.Option(False, "--dev", help="Utiliser une config locale sans Terraform"),
 ) -> None:
     """Scenario 1: Generate 500 JSON log files in a zip archive."""
     from data_generator.config import dev_config, load_config
-    from data_generator.generators.scenario1_logs import generate_logs
+    from data_generator.generators.scenario1_logs import generate_logs, upload_to_s3
 
     config = dev_config() if dev else load_config()
     path = generate_logs(config, output_dir)
     typer.echo(f"Generated: {path}")
+    if upload and not dev:
+        upload_to_s3(config, path)
+        typer.echo("Uploaded to S3.")
 
 
 @app.command()
@@ -101,7 +105,7 @@ def all_scenarios(
 ) -> None:
     """Run all scenarios in order."""
     from data_generator.config import load_config
-    from data_generator.generators.scenario1_logs import generate_logs
+    from data_generator.generators.scenario1_logs import generate_logs, upload_to_s3
     from data_generator.generators.scenario2_parquet import generate_and_upload_parquet
     from data_generator.generators.scenario3_postgres import populate_postgres
     from data_generator.generators.scenario4_iceberg import generate_iceberg
@@ -110,7 +114,9 @@ def all_scenarios(
     config = load_config()
 
     typer.echo("Scenario 1: Generating library logs...")
-    generate_logs(config, output_dir)
+    zip_path = generate_logs(config, output_dir)
+    if upload:
+        upload_to_s3(config, zip_path)
 
     typer.echo("Scenario 2: Generating Parquet files...")
     generate_and_upload_parquet(config, output_dir, upload)

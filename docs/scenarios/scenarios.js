@@ -98,7 +98,7 @@ function mdToPanel(raw) {
   const contextHTML  = marked.parse((sections['__context__'] || []).join('\n').trim());
   const stepsHTML    = buildSteps((sections['Objectifs'] || []).join('\n'));
   const hintsHTML    = buildHints((sections['Indices'] || []).join('\n'));
-  const flagNote     = meta.flag_note ? `<p>${meta.flag_note}</p>` : '';
+  const isLastScenario = Number(meta.numero) === SCENARIO_FILES.length;
   const epilogueKey  = Object.keys(sections).find(k => /épilogue|epilogue/i.test(k));
   const epilogueHTML = epilogueKey
     ? `<div class="sc-epilogue">${marked.parse(sections[epilogueKey].join('\n').trim())}</div>`
@@ -118,9 +118,8 @@ function mdToPanel(raw) {
       <div class="sc-section">OBJECTIFS</div>
       <ol class="sc-steps">${stepsHTML}</ol>
       <div class="sc-flag">
-        <div class="sc-flag-label">${meta.flag_label || 'FLAG ATTENDU'}</div>
-        <code>${meta.flag || ''}</code>
-        ${flagNote}
+        <div class="sc-flag-label">${isLastScenario ? 'FLAG FINAL' : 'SOUMISSION'}</div>
+        <p>Une fois le flag trouvé, soumettez-le via le bouton <strong>GLOBAL HELPERS</strong> en haut de page.</p>
       </div>
       <div class="sc-section">INDICES</div>
       <div class="sc-hints">${hintsHTML}</div>

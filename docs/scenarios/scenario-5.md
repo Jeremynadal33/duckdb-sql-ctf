@@ -8,8 +8,6 @@ techniques:
     - PROPERTY GRAPH
     - GRAPH_TABLE : https://duckdb.org/docs/extensions/pgq.html#graph-table-function
     - MATCH
-flag: FLAG{canards_anti_criminels_mission_accomplie}
-flag_label: FLAG FINAL
 ---
 
 Le médecin est décédé, son badge a été usurpé. Mais qui avait accès à son entourage ? L'administration vous transmet une base de données du **réseau social** de la bibliothèque. Chargez-la depuis S3 et explorez les relations — un proche de Quackie Chan a un profil particulièrement troublant.

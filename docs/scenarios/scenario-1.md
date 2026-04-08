@@ -7,12 +7,11 @@ techniques:
     - IS NULL
     - GROUP BY : https://duckdb.org/docs/sql/query_syntax/groupby.html
     - ORDER BY : https://duckdb.org/docs/sql/query_syntax/orderby.html
-flag: FLAG{aws_access_key_id=...,aws_secret_access_key=...,bucket=...}
-flag_note: Ces credentials donnent accès aux archives S3 pour le scénario suivant.
-flag_label: FLAG ATTENDU
+    - httpfs : https://duckdb.org/docs/extensions/httpfs/overview.html
+    - CREATE SECRET : https://duckdb.org/docs/sql/statements/create_secret.html
 ---
 
-La Bibliothèque du Lac vous transmet une archive `library_logs.zip` contenant les registres de prêts de la journée. Chaque fichier `.json` contient une centaine d'enregistrements. Certains documents n'ont pas été retournés.
+La Bibliothèque du Lac vous transmet une archive [`library_logs.zip`](https://duckdb-sql-ctf.s3.eu-west-1.amazonaws.com/data/library_logs.zip) contenant les registres de prêts de la journée. Certains documents n'ont pas été retournés.
 
 ## Objectifs
 

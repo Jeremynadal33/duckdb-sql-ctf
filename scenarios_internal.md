@@ -11,7 +11,7 @@
 | **Donna Duck** | Mère des 12 bébés | Partenaire de Hugh Quackman |
 | Quack Norris | Figurant / bruit dans les données | Emprunteur normal |
 | Quackamole | Figurant / bruit dans les données | Emprunteur normal |
-| ~20 autres noms | Figurants | Noms à thème canard (Donald Quack, Quackatoa, Bill Quacksby, etc.) |
+| ~20 autres noms | Figurants | Noms à thème (Donald Quack, Quackatoa, Bill Quacksby, etc.) |
 
 ### Variations du nom de Quackie Chan (pour fuzzy matching)
 
@@ -32,7 +32,7 @@ Chaque flag est encapsulé dans `FLAG{...}`. Les flags des scenarios 1 à 3 cont
 | 1 | `FLAG{aws_access_key_id=AKIA...,aws_secret_access_key=...,bucket=duckdb-sql-ctf}` | Credentials S3 temporaires (STS) |
 | 2 | `FLAG{pg_host=<rds_endpoint>,pg_port=5432,pg_user=ctf_reader,pg_password=...,pg_dbname=ctfdb}` | Connexion PG read-only |
 | 3 | `FLAG{...}` | Accès aux données du graphe (TBD) |
-| 4 | `FLAG{canards_anti_criminels_mission_accomplie}` | Flag classique final |
+| 4 | `FLAG{cellule_anti_criminelle_mission_accomplie}` | Flag classique final |
 
 ### Suivi des participants
 
@@ -382,7 +382,7 @@ La note `"ne garde jamais une partenaire très longtemps"` est sur une des relat
 
 ### Flag final
 
-`FLAG{canards_anti_criminels_mission_accomplie}`
+`FLAG{cellule_anti_criminelle_mission_accomplie}`
 
 Caché dans : le champ `notes` de la relation entre Hugh Quackman et Donna Duck, ou accessible uniquement via une requête de traversée de graphe (shortest path entre deux personnes spécifiques).
 

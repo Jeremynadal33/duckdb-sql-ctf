@@ -3,13 +3,8 @@ numero: 2
 label: Archives
 titre: Les Archives du Lac
 techniques:
-    - httpfs : https://duckdb.org/docs/extensions/httpfs/overview.html
     - read_parquet : https://duckdb.org/docs/data/parquet/overview.html
-    - CREATE SECRET : https://duckdb.org/docs/sql/statements/create_secret.html
     - jaro_winkler_similarity : https://duckdb.org/docs/sql/functions/text.html#jaro_winkler_similaritystring-1-string-2
-flag: FLAG{pg_host=...,pg_user=...,pg_password=...,pg_dbname=...}
-flag_note: Ces credentials donnent accès à la base PostgreSQL pour le scénario suivant.
-flag_label: FLAG ATTENDU
 ---
 
 Grâce aux credentials AWS du scénario précédent, vous accédez à un bucket S3 contenant les archives numériques. L'emprunteur a signé à la main — son nom varie d'un prêt à l'autre. Vous devez retrouver son identité exacte dans l'annuaire des employés.
@@ -17,9 +12,8 @@ Grâce aux credentials AWS du scénario précédent, vous accédez à un bucket 
 ## Objectifs
 
 1. Configurer l'accès S3 dans DuckDB
-2. Explorer les fichiers Parquet du bucket
-3. Retrouver l'identité via **correspondance floue**
-4. Explorer les **métadonnées** des tables pour extraire le flag
+2. Explorer les fichiers bucket
+3. Retrouver l'identité via **fuzzy matching**
 
 ## Indices
 
@@ -42,7 +36,7 @@ CREATE SECRET my_s3_secret (
 SELECT * FROM read_parquet('s3://bucket-name/data/employees/*.parquet') LIMIT 10;
 ```
 
-### Indice 3 — Correspondance floue
+### Indice 3 — Fuzzy matching
 
 ```sql
 SELECT

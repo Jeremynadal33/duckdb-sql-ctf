@@ -1,4 +1,4 @@
-# DuckDB SQL CTF — Opération Canards Disparus
+# DuckDB SQL CTF — Opération Dossiers Disparus
 
 ## Prologue
 
