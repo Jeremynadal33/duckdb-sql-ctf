@@ -11,7 +11,7 @@
 const CTF_BC        = new BroadcastChannel('ctf-data');
 const CACHE_KEY     = 'ctf_data_cache';
 const FINGERPRINT_KEY = 'ctf_data_fingerprint';
-const POLL_MS       = 30_000;
+const POLL_MS       = 15_000;
 const S3_BUCKET    = 'duckdb-sql-ctf';
 const S3_REGION    = 'eu-west-1';
 const S3_BASE_URL  = `https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com`;

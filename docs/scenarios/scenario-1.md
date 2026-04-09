@@ -4,11 +4,9 @@ label: Registres
 titre: Les Registres de la Bibliothèque
 techniques:
     - read_json : https://duckdb.org/docs/data/json/overview.html
-    - IS NULL
-    - GROUP BY : https://duckdb.org/docs/sql/query_syntax/groupby.html
-    - ORDER BY : https://duckdb.org/docs/sql/query_syntax/orderby.html
     - httpfs : https://duckdb.org/docs/extensions/httpfs/overview.html
-    - CREATE SECRET : https://duckdb.org/docs/sql/statements/create_secret.html
+    - CREATE SECRET : https://duckdb.org/docs/current/configuration/secrets_manager#temporary-secrets
+
 ---
 
 La Bibliothèque du Lac vous transmet une archive [`library_logs.zip`](https://duckdb-sql-ctf.s3.eu-west-1.amazonaws.com/data/library_logs.zip) contenant les registres de prêts de la journée. Certains documents n'ont pas été retournés.

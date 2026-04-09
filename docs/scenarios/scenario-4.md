@@ -3,23 +3,22 @@ numero: 4
 label: Voyage
 titre: Le Voyage dans le Temps
 techniques:
-    - iceberg ext. : https://duckdb.org/docs/extensions/iceberg/overview.html
-    - iceberg_scan : https://duckdb.org/docs/extensions/iceberg/overview.html#iceberg-scan
+    - iceberg ext. : https://duckdb.org/docs/current/core_extensions/iceberg/overview
     - TIME TRAVEL
-    - iceberg_snapshots : https://duckdb.org/docs/extensions/iceberg/overview.html#iceberg-snapshots
+    - iceberg_snapshots : https://duckdb.org/docs/current/core_extensions/iceberg/overview#visualizing-snapshots
 ---
 
-Vous vous rendez à l'adresse de Quackie Chan. L'endroit est désert — personne ne semble y être passé depuis un moment. Sur la table, pourtant, vous trouvez un article du *Canard Enchaîné* daté du mois dernier. Le médecin est décédé. Son badge BADGE-0042 a pourtant continué d'être utilisé après sa mort… Mais par qui ?
+Vous vous rendez à l'adresse de Quackie Chan. L'endroit est désert — personne ne semble y être passé depuis un moment. Sur la table, pourtant, vous trouvez un article du *Canard Enchaîné* daté du mois dernier. Le médecin est décédé. Son badge a pourtant continué d'être utilisé après sa mort… Mais par qui ?
 
-Les badges d'accès sont stockés sur S3 au format **Apache Iceberg**, un format de table qui conserve l'historique complet des modifications. Remontez dans le temps — avant la date du décès — pour retrouver les métadonnées originales du badge de Quackie.
+Les badges d'accès sont stockés sur les archives numériques (*S3*) au format **Apache Iceberg**, un format de table qui conserve l'historique complet des modifications. Remontez dans le temps — avant la date du décès — pour retrouver les métadonnées originales du badge de Quackie.
 
 ## Objectifs
 
-1. Explorer le dossier `badges/` sur S3 et identifier le format Iceberg
-2. Installer l'extension Iceberg dans DuckDB
+1. Installer l'extension Iceberg dans DuckDB
+2. Explorer le dossier `badges/` dans les archives
 3. Lister les **snapshots** disponibles et repérer les dates
 4. Interroger la table à un instant **antérieur au décès** de Quackie Chan
-5. Extraire le flag depuis les métadonnées du badge BADGE-0042
+5. Extraire le flag depuis les métadonnées du badge
 
 ## Indices
 
@@ -32,7 +31,8 @@ INSTALL iceberg; LOAD iceberg;
 ### Indice 2 — Scanner la table (dernier snapshot)
 
 ```sql
-SELECT * FROM iceberg_scan('s3://bucket/data/badges/');
+SELECT * FROM iceberg_scan('s3://bucket/data/badges/'
+, allow_moved_paths = true);
 ```
 
 Vous remarquerez que le badge de Quackie est **inactive** — les métadonnées ne contiennent rien d'utile dans l'état actuel.
@@ -50,7 +50,8 @@ Comparez les dates des snapshots avec la date du décès mentionnée dans l'arti
 ```sql
 SELECT * FROM iceberg_scan(
     's3://bucket/data/badges/',
-    snapshot_from_timestamp => TIMESTAMP '2026-03-01'
+    snapshot_from_timestamp => TIMESTAMP '2026-03-01',
+    allow_moved_paths = true
 )
 WHERE badge_id = 'BADGE-0042';
 ```

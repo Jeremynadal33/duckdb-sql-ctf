@@ -4,17 +4,17 @@ label: Réseau
 titre: Le Réseau du Suspect
 techniques:
     - ATTACH : https://duckdb.org/docs/sql/statements/attach.html
-    - DuckPGQ : https://duckdb.org/docs/extensions/pgq.html
-    - PROPERTY GRAPH
-    - GRAPH_TABLE : https://duckdb.org/docs/extensions/pgq.html#graph-table-function
-    - MATCH
+    - DuckPGQ : https://duckdb.org/community_extensions/extensions/duckpgq
+    - PROPERTY GRAPH : https://duckdb.org/docs/current/guides/sql_features/graph_queries#creating-a-property-graph
+    - MATCH : https://duckdb.org/docs/current/guides/sql_features/graph_queries#pattern-matching
 ---
 
-Le médecin est décédé, son badge a été usurpé. Mais qui avait accès à son entourage ? L'administration vous transmet une base de données du **réseau social** de la bibliothèque. Chargez-la depuis S3 et explorez les relations — un proche de Quackie Chan a un profil particulièrement troublant.
+Le médecin est décédé, son badge a été usurpé. Mais qui pouvait y avoir accès dans son entourage ?
+Les métadonnées récupérées pointent vers une base de données du réseau social de la bibliothèque. Cartographiez les relations autour de Quackie Chan : l'un de ses proches a un profil particulièrement troublant.
 
 ## Objectifs
 
-1. Charger la base DuckDB depuis S3
+1. Charger la base du réseau (*DuckDB*) depuis les archives (*S3*)
 2. Explorer les tables `persons` et `relationships`
 3. Construire un **property graph** avec DuckPGQ
 4. Traverser le graphe depuis Quackie Chan
@@ -25,15 +25,6 @@ Le médecin est décédé, son badge a été usurpé. Mais qui avait accès à s
 ### Indice 1 — Charger la base depuis S3
 
 ```sql
-INSTALL httpfs; LOAD httpfs;
-
-CREATE SECRET s3_secret (
-    TYPE S3,
-    KEY_ID 'votre_access_key',
-    SECRET 'votre_secret_key',
-    REGION 'eu-west-1'
-);
-
 ATTACH 's3://bucket/data/network.duckdb' AS social (READ_ONLY);
 SHOW ALL TABLES;
 ```

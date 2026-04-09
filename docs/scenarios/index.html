@@ -69,6 +69,9 @@
         <a href="https://duckdb.org/docs/installation/" target="_blank">Installer DuckDB &rarr;</a>
         <span class="prereq-note">Toutes les requetes se font en local via DuckDB</span>
       </div>
+      <div class="mission-unlock-notice">
+        A la fin de chaque scenario, <a href="#" class="unlock-flag-link" onclick="openSubmitHelper(); return false;">soumettez votre flag</a> pour debloquer le scenario suivant.
+      </div>
     </div>
 
     <div id="scenario-chain" class="scenario-chain"></div>
@@ -122,6 +125,15 @@ COPY (
 <script src="scenarios.js"></script>
 <script>
   const overlay = document.getElementById('submit-overlay');
+
+  function openSubmitHelper() {
+    document.querySelectorAll('.helper-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.helper-pane').forEach(p => p.classList.remove('active'));
+    document.querySelector('.helper-tab[data-tab="submit"]').classList.add('active');
+    document.getElementById('helper-submit').classList.add('active');
+    overlay.hidden = false;
+  }
+
   document.getElementById('submit-btn').addEventListener('click', () => { overlay.hidden = false; });
   document.getElementById('submit-close').addEventListener('click', () => { overlay.hidden = true; });
   overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.hidden = true; });
