@@ -302,7 +302,7 @@ def _generate_city_names(fake: Faker) -> list[str]:
     return sorted(cities)
 
 
-def _create_cities(fake: Faker) -> list[CityInformation]:
+def _create_cities(fake: Faker, flag_scenario6: str) -> list[CityInformation]:
     """Create city_information rows with flags/hints.
 
     Noise cities are returned first so that TARGET_CITY and DECOY_CITY
@@ -323,7 +323,8 @@ def _create_cities(fake: Faker) -> list[CityInformation]:
         CityInformation(
             city_name=TARGET_CITY,
             city_metadata={
-                "info": "en vrai c'est vraiment pas loin là, check ptet sur une carte"
+                "info": "en vrai c'est vraiment pas loin là, check ptet sur une carte",
+                "note_cachee": flag_scenario6,
             },
         )
     )
@@ -399,7 +400,7 @@ def populate_postgres(config: CTFConfig, upload: bool = True) -> None:
         session.add_all(addresses)
 
         # --- City information ---
-        cities = _create_cities(fake)
+        cities = _create_cities(fake, config.flag_scenario6)
         session.add_all(cities)
 
         session.commit()

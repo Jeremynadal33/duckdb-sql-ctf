@@ -22,6 +22,7 @@ class CTFConfig(BaseModel):
     iam_secret_access_key: str
     flag_scenario4: str
     flag_scenario5: str
+    flag_scenario6: str
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -69,6 +70,7 @@ def dev_config() -> CTFConfig:
         iam_secret_access_key="dev-secret-key",
         flag_scenario4="FLAG{s3://duckdb-sql-ctf-dev/data/network.duckdb}",
         flag_scenario5="FLAG{cellule_anti_criminelle_mission_accomplie}",
+        flag_scenario6="FLAG{check sur la carte il est dans le coin coin}",
     )
 
 
@@ -103,4 +105,5 @@ def load_config(terraform_dir: Path | None = None) -> CTFConfig:
         iam_secret_access_key=iam_secret_access_key,
         flag_scenario4=outputs["flag_scenario4"]["value"],
         flag_scenario5=outputs["flag_scenario5"]["value"],
+        flag_scenario6=outputs["flag_scenario6"]["value"],
     )

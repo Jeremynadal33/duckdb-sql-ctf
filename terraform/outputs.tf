@@ -74,3 +74,13 @@ output "flag_scenario5" {
   value       = local.flag_scenario5
 }
 
+output "flag_scenario6" {
+  description = "CTF flag for scenario 6"
+  value       = local.flag_scenario6
+}
+
+output "flag_scenario7" {
+  description = "CTF flag for scenario 7"
+  value       = local.flag_scenario7
+}
+

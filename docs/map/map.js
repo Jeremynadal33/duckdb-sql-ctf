@@ -15,22 +15,14 @@ const LOCATIONS = [
   },
   {
     unlockAfter: 2,
-    lat: C.archives?.lat ?? 44.847105194415995, lon: C.archives?.lon ?? -0.5539175146997978,
-    label: 'Archives Municipales',
-    sublabel: C.archives?.city ?? 'Bordeaux',
-    note: 'Registres nationaux consultés pour l\'identification du suspect.',
-    type: 'archive',
-  },
-  {
-    unlockAfter: 3,
     lat: C.city_hall?.lat ?? 44.84003190271778, lon: C.city_hall?.lon ?? -0.5788558745417992,
     label: 'Hotel de Ville',
     sublabel: C.city_hall?.city ?? 'Bordeaux',
-    note: 'Mairie de Bordeaux. Lieu pour récupérer des informations administratives sur les suspects',
+    note: 'Mairie de Bordeaux. Registres nationaux consultés pour l\'identification du suspect',
     type: 'mairie',
   },
   {
-    unlockAfter: 4,
+    unlockAfter: 3,
     lat: C.quackie?.lat ?? 44.883994690921455, lon: C.quackie?.lon ?? -0.5783725032146239,
     label: 'Domicile de Quackie Chan',
     sublabel: C.quackie?.city ?? 'Bordeaux',
@@ -38,7 +30,7 @@ const LOCATIONS = [
     type: 'victim',
   },
   {
-    unlockAfter: 5,
+    unlockAfter: 4,
     lat: 46.66676058512701, lon: 0.36749264120380337,
     label: 'Arret au Futuroscope parce qu\'il aime bien les parcs d\'attractions',
     sublabel: 'Poitiers',
@@ -46,7 +38,7 @@ const LOCATIONS = [
     type: 'suspect',
   },
   {
-    unlockAfter: 5,
+    unlockAfter: 6,
     lat: C.target?.lat ?? 48.87971881975437, lon: C.target?.lon ?? 2.2835799241186945,
     label: 'Domicile de Hugh Quackman',
     sublabel: C.target?.city ?? 'Paris',
