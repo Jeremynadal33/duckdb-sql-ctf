@@ -112,29 +112,34 @@ async function loadFromFile(file) {
   }
 }
 
-// ── Load from S3 (reads graph_data.json) ─────────────────────────
+// ── Load from S3 path — download then inject into DuckDB WASM ────
+// s3://bucket/path/file.duckdb → https://bucket.s3.eu-west-1.amazonaws.com/path/file.duckdb
 
-async function loadFromS3(keyId, secret, bucket) {
-  setStatus('loading', 'Connexion S3…');
+function s3ToHttpUrl(s3Path) {
+  const withoutProto = s3Path.replace(/^s3:\/\//, '');
+  const slashIdx = withoutProto.indexOf('/');
+  const bucket   = withoutProto.slice(0, slashIdx);
+  const key      = withoutProto.slice(slashIdx + 1);
+  return `https://${bucket}.s3.eu-west-1.amazonaws.com/${key}`;
+}
+
+async function loadFromS3(s3Path) {
+  setStatus('loading', 'Téléchargement…');
   try {
     if (!db) await initDuckDB();
 
-    await con.query('INSTALL httpfs; LOAD httpfs;');
-    // Drop previous secret if any
-    try { await con.query('DROP SECRET IF EXISTS ctf_s3'); } catch (_) {}
-    await con.query(`
-      CREATE SECRET ctf_s3 (
-        TYPE S3,
-        KEY_ID '${keyId}',
-        SECRET '${secret}',
-        REGION 'eu-west-1'
-      )
-    `);
+    const url  = s3ToHttpUrl(s3Path);
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status} — ${url}`);
 
-    setStatus('loading', 'Chargement du graphe S3…');
+    const buf      = await resp.arrayBuffer();
+    const fileName = s3Path.split('/').pop();
+
+    setStatus('loading', 'Chargement dans DuckDB…');
+    await db.registerFileBuffer(fileName, new Uint8Array(buf));
 
     try { await con.query('DETACH social'); } catch (_) {}
-    await con.query(`ATTACH 's3://${bucket}/data/social_network.duckdb' AS social (READ_ONLY)`);
+    await con.query(`ATTACH '${fileName}' AS social (READ_ONLY)`);
 
     const { persons, relationships } = await queryGraph('social');
     buildGraph(persons, relationships);
@@ -326,14 +331,16 @@ document.getElementById('file-input').addEventListener('change', e => {
 });
 
 document.getElementById('btn-s3').addEventListener('click', () => {
-  const keyId  = document.getElementById('s3-key').value.trim();
-  const secret = document.getElementById('s3-secret').value.trim();
-  const bucket = document.getElementById('s3-bucket').value.trim();
-  if (!keyId || !secret || !bucket) {
-    alert('Renseignez KEY_ID, SECRET et le nom du bucket.');
+  const s3Path = document.getElementById('s3-path').value.trim();
+  if (!s3Path.startsWith('s3://')) {
+    alert('Entrez un chemin S3 valide (ex: s3://bucket/data/network.duckdb)');
     return;
   }
-  loadFromS3(keyId, secret, bucket);
+  loadFromS3(s3Path);
+});
+
+document.getElementById('s3-path').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('btn-s3').click();
 });
 
 document.getElementById('detail-close').addEventListener('click', hideDetail);

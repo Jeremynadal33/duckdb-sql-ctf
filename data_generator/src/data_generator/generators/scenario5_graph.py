@@ -95,15 +95,15 @@ def _build_relationships(fake: Faker, all_persons: list[dict]) -> list[dict]:
     used_pairs: set[tuple[int, int]] = set()
     rel_id = 1
 
-    # ── Key relationship: Quacko is Quackie's brother — flag here ──
+    # ── Key relationship: Quackie → Quacko (flag here) ──
     relationships.append({
         "id": rel_id,
-        "person_id_1": QUACKO_CHAN_ID,
-        "person_id_2": QUACKIE_CHAN_EMPLOYEE_ID,
+        "person_id_1": QUACKIE_CHAN_EMPLOYEE_ID,
+        "person_id_2": QUACKO_CHAN_ID,
         "relationship_type": "frère",
         "notes": FLAG_SCENARIO5,
     })
-    used_pairs.add((QUACKO_CHAN_ID, QUACKIE_CHAN_EMPLOYEE_ID))
+    used_pairs.add((QUACKIE_CHAN_EMPLOYEE_ID, QUACKO_CHAN_ID))
     rel_id += 1
 
     # Quackie has a few noise connections (colleagues, friends) to make graph exploration interesting
@@ -144,49 +144,6 @@ def _build_relationships(fake: Faker, all_persons: list[dict]) -> list[dict]:
     return relationships
 
 
-def _export_cytoscape_json(
-    all_persons: list[dict], relationships: list[dict], output_dir: Path
-) -> Path:
-    """Export graph data as Cytoscape.js-compatible JSON for the web visualization."""
-    import json
-
-    nodes = [
-        {
-            "data": {
-                "id": str(p["id"]),
-                "label": f"{p['first_name']} {p['last_name']}",
-                "occupation": p.get("occupation", ""),
-                "notes": p.get("notes", ""),
-                "key": p["id"] in (QUACKIE_CHAN_EMPLOYEE_ID, QUACKO_CHAN_ID),
-                "isVictim": p["id"] == QUACKIE_CHAN_EMPLOYEE_ID,
-                "isSuspect": p["id"] == QUACKO_CHAN_ID,
-            }
-        }
-        for p in all_persons
-    ]
-
-    edges = [
-        {
-            "data": {
-                "id": f"rel-{r['id']}",
-                "source": str(r["person_id_1"]),
-                "target": str(r["person_id_2"]),
-                "label": r["relationship_type"],
-                "notes": r["notes"],
-                "isKeyEdge": bool(r["notes"]),
-            }
-        }
-        for r in relationships
-    ]
-
-    graph_json = output_dir / "graph_data.json"
-    graph_json.write_text(
-        json.dumps({"nodes": nodes, "edges": edges}, ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
-    return graph_json
-
-
 def generate_graph_db(output_dir: Path) -> Path:
     """Generate the network.duckdb file locally."""
     import duckdb
@@ -205,13 +162,6 @@ def generate_graph_db(output_dir: Path) -> Path:
     noise_persons = _build_noise_persons(fake)
     all_persons = key_persons + noise_persons
     relationships = _build_relationships(fake, all_persons)
-
-    # Export JSON for the web visualization (also copy to docs/graph/ for local dev)
-    json_path = _export_cytoscape_json(all_persons, relationships, output_dir)
-    docs_graph_dir = Path(__file__).resolve().parents[5] / "docs" / "graph"
-    if docs_graph_dir.exists():
-        import shutil
-        shutil.copy2(json_path, docs_graph_dir / "data.json")
 
     con = duckdb.connect(str(db_path))
 
@@ -248,16 +198,6 @@ def generate_graph_db(output_dir: Path) -> Path:
          for r in relationships],
     )
 
-    # con.execute("""
-        # CREATE PROPERTY GRAPH social_network
-        # VERTEX TABLES (persons)
-        # EDGE TABLES (
-        #     relationships
-        #         SOURCE KEY (person_id_1) REFERENCES persons (id)
-        #         DESTINATION KEY (person_id_2) REFERENCES persons (id)
-    #     )
-    # """)
-
     con.close()
     return db_path
 
@@ -271,11 +211,6 @@ def upload_to_s3(config: CTFConfig, output_dir: Path) -> None:
         str(output_dir / "network.duckdb"),
         config.s3_bucket_name,
         "data/network.duckdb",
-    )
-    s3.upload_file(
-        str(output_dir / "graph_data.json"),
-        config.s3_bucket_name,
-        "data/graph_data.json",
     )
 
 
