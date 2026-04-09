@@ -31,7 +31,8 @@ RELATIONSHIP_TYPES = [
 
 FAMILY_TYPES = ["frère", "sœur", "parent", "enfant", "conjoint", "cousin"]
 
-QUACKO_CHAN_ID = 43
+QUACKIE_SISTER_ID  = 43
+HUGH_QUACKMAN_ID   = 44
 
 
 def _build_key_persons() -> list[dict]:
@@ -45,19 +46,27 @@ def _build_key_persons() -> list[dict]:
             "notes": "Décédé. Ancien employé de la Clinique du Lac.",
         },
         {
-            "id": QUACKO_CHAN_ID,
-            "first_name": "Quacko",
+            "id": QUACKIE_SISTER_ID,
+            "first_name": "Quackella",
             "last_name": "Chan",
-            "date_of_birth": date(1980, 4, 15).isoformat(),
-            "occupation": "Éleveur de chevaux",
-            "notes": "Connu du service vétérinaire pour détention illégale d'animaux protégés.",
+            "date_of_birth": date(1982, 6, 21).isoformat(),
+            "occupation": "Assistante vétérinaire",
+            "notes": "",
+        },
+        {
+            "id": HUGH_QUACKMAN_ID,
+            "first_name": "Hugh",
+            "last_name": "Quackman",
+            "date_of_birth": date(1979, 11, 8).isoformat(),
+            "occupation": "Taxidermiste",
+            "notes": "Pere de famille, ex mari de Quackella. A un casier judiciaire pour etre un vrai papa poule.",
         },
     ]
 
 
 def _build_noise_persons(fake: Faker) -> list[dict]:
     persons = []
-    used_ids = {QUACKIE_CHAN_EMPLOYEE_ID, QUACKO_CHAN_ID}
+    used_ids = {QUACKIE_CHAN_EMPLOYEE_ID, QUACKIE_SISTER_ID, HUGH_QUACKMAN_ID}
     for name in FIGURANT_NAMES:
         parts = name.split(" ", 1)
         pid = fake.unique.random_int(min=100, max=9999)
@@ -95,19 +104,29 @@ def _build_relationships(fake: Faker, all_persons: list[dict]) -> list[dict]:
     used_pairs: set[tuple[int, int]] = set()
     rel_id = 1
 
-    # ── Key relationship: Quackie → Quacko (flag here) ──
+    # ── Key chain: Quackie → sœur → Quackella → conjoint → Hugh Quackman (flag here) ──
     relationships.append({
         "id": rel_id,
         "person_id_1": QUACKIE_CHAN_EMPLOYEE_ID,
-        "person_id_2": QUACKO_CHAN_ID,
-        "relationship_type": "frère",
+        "person_id_2": QUACKIE_SISTER_ID,
+        "relationship_type": "sœur",
+        "notes": "",
+    })
+    used_pairs.add((QUACKIE_CHAN_EMPLOYEE_ID, QUACKIE_SISTER_ID))
+    rel_id += 1
+
+    relationships.append({
+        "id": rel_id,
+        "person_id_1": QUACKIE_SISTER_ID,
+        "person_id_2": HUGH_QUACKMAN_ID,
+        "relationship_type": "conjoint",
         "notes": FLAG_SCENARIO5,
     })
-    used_pairs.add((QUACKIE_CHAN_EMPLOYEE_ID, QUACKO_CHAN_ID))
+    used_pairs.add((QUACKIE_SISTER_ID, HUGH_QUACKMAN_ID))
     rel_id += 1
 
     # Quackie has a few noise connections (colleagues, friends) to make graph exploration interesting
-    noise_ids = [p["id"] for p in all_persons if p["id"] not in (QUACKIE_CHAN_EMPLOYEE_ID, QUACKO_CHAN_ID)]
+    noise_ids = [p["id"] for p in all_persons if p["id"] not in (QUACKIE_CHAN_EMPLOYEE_ID, QUACKIE_SISTER_ID, HUGH_QUACKMAN_ID)]
     for pid in random.sample(noise_ids, min(6, len(noise_ids))):
         pair = (min(QUACKIE_CHAN_EMPLOYEE_ID, pid), max(QUACKIE_CHAN_EMPLOYEE_ID, pid))
         if pair not in used_pairs:

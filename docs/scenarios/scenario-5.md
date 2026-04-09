@@ -51,13 +51,18 @@ EDGE TABLES (
 );
 ```
 
-### Indice 4 — Traverser le graphe depuis Quackie Chan
+### Indice 4 — Traverser le graphe en 2 sauts depuis Quackie Chan
+
+Le suspect n'a pas de lien direct avec Quackie — il faut traverser un intermédiaire.
 
 ```sql
 FROM GRAPH_TABLE (social_network
-    MATCH (p1:persons)-[r:relationships]->(p2:persons)
+    MATCH (p1:persons)-[r1:relationships]->(p2:persons)-[r2:relationships]->(p3:persons)
     WHERE p1.first_name = 'Quackie' AND p1.last_name = 'Chan'
-    COLUMNS (p2.first_name, p2.last_name, p2.occupation, r.relationship_type, r.notes)
+    COLUMNS (p2.first_name AS inter_prenom, p2.last_name AS inter_nom,
+             r1.relationship_type AS lien_1,
+             p3.first_name AS suspect_prenom, p3.last_name AS suspect_nom,
+             p3.occupation, r2.relationship_type AS lien_2, r2.notes)
 );
 ```
 

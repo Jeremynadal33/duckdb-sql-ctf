@@ -153,7 +153,7 @@ async function loadFromS3(s3Path) {
 // ── Cytoscape graph builder ───────────────────────────────────────
 
 const VICTIM_ID  = '42';
-const SUSPECT_ID = '43';
+const SUSPECT_ID = '44';
 
 function buildGraph(persons, relationships) {
   const nodes = persons.map(p => ({
