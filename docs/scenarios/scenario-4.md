@@ -10,15 +10,14 @@ techniques:
 
 Vous vous rendez à l'adresse de Quackie Chan. L'endroit est désert — personne ne semble y être passé depuis un moment. Sur la table, pourtant, vous trouvez un article du *Canard Enchaîné* daté du mois dernier. Le médecin est décédé. Son badge a pourtant continué d'être utilisé après sa mort… Mais par qui ?
 
-Les badges d'accès sont stockés sur les archives numériques (*S3*) au format **Apache Iceberg**, un format de table qui conserve l'historique complet des modifications. Remontez dans le temps — avant la date du décès — pour retrouver les métadonnées originales du badge de Quackie.
+Les badges d'accès sont stockés sur les archives numériques (*S3*) au format **Apache Iceberg**, un format de table qui conserve l'historique complet des modifications. Remontez dans le temps pour retrouver les métadonnées originales du badge de Quackie.
 
 ## Objectifs
 
 1. Installer l'extension Iceberg dans DuckDB
-2. Explorer le dossier `badges/` dans les archives
+2. Explorer la table `badges/` dans les archives
 3. Lister les **snapshots** disponibles et repérer les dates
-4. Interroger la table à un instant **antérieur au décès** de Quackie Chan
-5. Extraire le flag depuis les métadonnées du badge
+4. Retrouver le snapshot qui contient le flag
 
 ## Indices
 
@@ -26,6 +25,11 @@ Les badges d'accès sont stockés sur les archives numériques (*S3*) au format 
 
 ```sql
 INSTALL iceberg; LOAD iceberg;
+```
+
+### Indice 2 - Configurer l'extension pour des tables sans indices de versions
+```sql
+SET unsafe_enable_version_guessing = true;
 ```
 
 ### Indice 2 — Scanner la table (dernier snapshot)

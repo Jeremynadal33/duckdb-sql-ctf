@@ -12,7 +12,6 @@ from data_generator.config import CTFConfig
 from data_generator.constants import (
     FAKER_SEED,
     FIGURANT_NAMES,
-    FLAG_SCENARIO5,
     QUACKIE_CHAN_EMPLOYEE_ID,
 )
 
@@ -35,7 +34,7 @@ QUACKIE_SISTER_ID  = 43
 HUGH_QUACKMAN_ID   = 44
 
 
-def _build_key_persons() -> list[dict]:
+def _build_key_persons(flag: str) -> list[dict]:
     return [
         {
             "id": QUACKIE_CHAN_EMPLOYEE_ID,
@@ -59,7 +58,7 @@ def _build_key_persons() -> list[dict]:
             "last_name": "Quackman",
             "date_of_birth": date(1979, 11, 8).isoformat(),
             "occupation": "Taxidermiste",
-            "notes": "Pere de famille, ex mari de Quackella. A un casier judiciaire pour etre un vrai papa poule.",
+            "notes": f"Pere de famille, ex mari de Quackella. A un casier judiciaire pour etre {flag}",
         },
     ]
 
@@ -120,14 +119,14 @@ def _build_relationships(fake: Faker, all_persons: list[dict]) -> list[dict]:
         "person_id_1": QUACKIE_SISTER_ID,
         "person_id_2": HUGH_QUACKMAN_ID,
         "relationship_type": "conjoint",
-        "notes": FLAG_SCENARIO5,
+        "notes": "",
     })
     used_pairs.add((QUACKIE_SISTER_ID, HUGH_QUACKMAN_ID))
     rel_id += 1
 
     # Quackie has a few noise connections (colleagues, friends) to make graph exploration interesting
     noise_ids = [p["id"] for p in all_persons if p["id"] not in (QUACKIE_CHAN_EMPLOYEE_ID, QUACKIE_SISTER_ID, HUGH_QUACKMAN_ID)]
-    for pid in random.sample(noise_ids, min(6, len(noise_ids))):
+    for pid in random.sample(noise_ids, min(3, len(noise_ids))):
         pair = (min(QUACKIE_CHAN_EMPLOYEE_ID, pid), max(QUACKIE_CHAN_EMPLOYEE_ID, pid))
         if pair not in used_pairs:
             relationships.append({
@@ -140,8 +139,8 @@ def _build_relationships(fake: Faker, all_persons: list[dict]) -> list[dict]:
             used_pairs.add(pair)
             rel_id += 1
 
-    # Noise relationships between random persons
-    person_ids = [p["id"] for p in all_persons]
+    # Noise relationships between random persons (exclude Quackie to control his degree)
+    person_ids = [p["id"] for p in all_persons if p["id"] != QUACKIE_CHAN_EMPLOYEE_ID]
     attempts = 0
     while len(relationships) < NUM_NOISE_RELATIONSHIPS + len(relationships[:7]) and attempts < 5000:
         attempts += 1
@@ -163,7 +162,7 @@ def _build_relationships(fake: Faker, all_persons: list[dict]) -> list[dict]:
     return relationships
 
 
-def generate_graph_db(output_dir: Path) -> Path:
+def generate_graph_db(output_dir: Path, flag: str) -> Path:
     """Generate the network.duckdb file locally."""
     import duckdb
 
@@ -177,7 +176,7 @@ def generate_graph_db(output_dir: Path) -> Path:
     # Remove existing file for idempotency
     db_path.unlink(missing_ok=True)
 
-    key_persons = _build_key_persons()
+    key_persons = _build_key_persons(flag)
     noise_persons = _build_noise_persons(fake)
     all_persons = key_persons + noise_persons
     relationships = _build_relationships(fake, all_persons)
@@ -234,7 +233,7 @@ def upload_to_s3(config: CTFConfig, output_dir: Path) -> None:
 
 
 def generate_graph(config: CTFConfig, output_dir: Path, upload: bool = True) -> Path:
-    db_path = generate_graph_db(output_dir)
+    db_path = generate_graph_db(output_dir, config.flag_scenario5)
     if upload:
         upload_to_s3(config, output_dir)
     return db_path

@@ -23,7 +23,6 @@ from data_generator.constants import (
     QUACKIE_CHAN_EMPLOYEE_ID,
     QUACKIE_DEATH_DATE,
     TARGET_DATE,
-    flag_scenario4,
 )
 from data_generator.models.parquet_models import Badge, Employee
 
@@ -273,7 +272,7 @@ def generate_iceberg(config: CTFConfig, output_dir: Path, upload: bool = True) -
     table.append(_badges_to_arrow(initial_badges))
 
     # Snapshots 1 through N-1: update Quackie's badge metadata
-    scenario4_flag = flag_scenario4(config.s3_bucket_name)
+    scenario4_flag = config.flag_scenario4
     for snapshot_idx in range(1, NUM_ICEBERG_SNAPSHOTS):
         updated_quackie = _make_quackie_badge_update(
             initial_badges, snapshot_idx, NUM_ICEBERG_SNAPSHOTS, scenario4_flag

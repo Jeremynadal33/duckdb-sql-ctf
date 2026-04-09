@@ -64,7 +64,7 @@ function buildSteps(md) {
   if (!md?.trim()) return '';
   return md.split('\n')
     .filter(l => /^\s*\d+\./.test(l))
-    .map(l => `<li>${marked.parseInline(l.replace(/^\s*\d+\.\s*/, ''))}</li>`)
+    .map(l => `<li><span>${marked.parseInline(l.replace(/^\s*\d+\.\s*/, ''))}</span></li>`)
     .join('');
 }
 

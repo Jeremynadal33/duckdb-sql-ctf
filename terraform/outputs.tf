@@ -64,3 +64,13 @@ output "api_gateway_url" {
   value       = aws_apigatewayv2_stage.pseudo.invoke_url
 }
 
+output "flag_scenario4" {
+  description = "CTF flag for scenario 4"
+  value       = local.flag_scenario4
+}
+
+output "flag_scenario5" {
+  description = "CTF flag for scenario 5"
+  value       = local.flag_scenario5
+}
+

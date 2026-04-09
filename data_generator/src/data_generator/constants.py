@@ -113,12 +113,6 @@ DEPARTMENTS = [
 
 NUM_CITIES = 500
 
-FLAG_SCENARIO5 = "FLAG{cellule_anti_criminelle_mission_accomplie}"
-
-def flag_scenario4(bucket_name: str) -> str:
-    """Build the scenario 4 flag from the S3 bucket name."""
-    return f"FLAG{{s3://{bucket_name}/data/network.duckdb}}"
-
 GH_PAGES_BASE_URL = "https://jeremynadal33.github.io/duckdb-sql-ctf"
 
 NUM_ICEBERG_SNAPSHOTS = 10

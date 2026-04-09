@@ -4,6 +4,7 @@ label: Réseau
 titre: Le Réseau du Suspect
 techniques:
     - ATTACH : https://duckdb.org/docs/sql/statements/attach.html
+    - Visualiseur graphe : ../graph/
     - DuckPGQ : https://duckdb.org/community_extensions/extensions/duckpgq
     - PROPERTY GRAPH : https://duckdb.org/docs/current/guides/sql_features/graph_queries#creating-a-property-graph
     - MATCH : https://duckdb.org/docs/current/guides/sql_features/graph_queries#pattern-matching
@@ -12,31 +13,56 @@ techniques:
 Le médecin est décédé, son badge a été usurpé. Mais qui pouvait y avoir accès dans son entourage ?
 Les métadonnées récupérées pointent vers une base de données du réseau social de la bibliothèque. Cartographiez les relations autour de Quackie Chan : l'un de ses proches a un profil particulièrement troublant.
 
+&nbsp; 
+
+Deux approches s'offrent à vous : explorer le graphe visuellement via le [visualiseur graphique](../graph/), ou utiliser l'extension DuckPGQ en "SQL".
+
 ## Objectifs
 
-1. Charger la base du réseau (*DuckDB*) depuis les archives (*S3*)
-2. Explorer les tables `persons` et `relationships`
-3. Construire un **property graph** avec DuckPGQ
-4. Traverser le graphe depuis Quackie Chan
-5. Identifier le proche suspect et récupérer le flag dans la colonne `notes`
+1. Charger la base du réseau de **Quackie Chan**
+2. Si **Chemin B** : Construire un graph à partir des tables `persons` et `relationships` à l'aide de DuckDBPGQ
+3. Parcourir le graph et identifier le proche suspect afin de trouver le flag
 
 ## Indices
 
-### Indice 1 — Charger la base depuis S3
+### Chemin A - Indice 1 : Le visualiseur de graphe
 
-```sql
-ATTACH 's3://bucket/data/network.duckdb' AS social (READ_ONLY);
-SHOW ALL TABLES;
+Ouvrez le [visualiseur de graphe](../graph/) intégré au site. Deux options pour charger les données :
+
+- **Depuis S3** : collez le chemin `s3://bucket/data/network.duckdb` dans le champ S3 et cliquez *Charger*
+- **Fichier local** : téléchargez le fichier `.duckdb` et importez-le via le bouton *Fichier .duckdb*
+
+### Chemin A - Indice 2 : Les proches de Quackie Chan
+
+Une fois le graphe affiché :
+
+1. Cherchez **Quackie Chan** via le champ de recherche
+2. **Double-cliquez** sur le nœud pour isoler son voisinage
+
+### Chemin A - Indice 3 : Ou chercher
+
+1. Repérez le chemin en 2 sauts : Quackie → Soeur → Conjoint
+5. Le flag apparaît dans le champ **Notes** (surligné en vert)
+
+
+
+### Chemin B - Indice 1 : Télécharger la base depuis S3
+
+```bash
+curl -O https://duckdb-sql-ctf.s3.eu-west-1.amazonaws.com/data/network.duckdb
 ```
 
-### Indice 2 — Explorer les tables
+### Chemin B - Indice 2 : Explorer les tables
 
 ```sql
+ATTACH '<path>/network.duckdb' AS social (READ_ONLY);
 SELECT * FROM social.persons LIMIT 10;
 SELECT * FROM social.relationships LIMIT 10;
 ```
 
-### Indice 3 — Activer DuckPGQ et créer le graphe
+### Chemin B - Indice 3 : Création du graph avec DuckPGQ (SQL)
+
+> **Attention :** l'extension communautaire DuckPGQ nécessite DuckDB **< 1.5.0**. Si vous utilisez une version plus récente, privilégiez le Chemin A (visualiseur) ci-dessus.
 
 ```sql
 INSTALL duckpgq FROM community;
@@ -51,7 +77,9 @@ EDGE TABLES (
 );
 ```
 
-### Indice 4 — Traverser le graphe en 2 sauts depuis Quackie Chan
+### Chelin B - Indice 4 : Traverser le graphe depuis Quackie Chan
+
+> Cet indice concerne le Chemin B (DuckPGQ). Si vous utilisez le visualiseur, l'indice 3a suffit.
 
 Le suspect n'a pas de lien direct avec Quackie — il faut traverser un intermédiaire.
 
@@ -67,6 +95,8 @@ FROM GRAPH_TABLE (social_network
 ```
 
 Le flag se trouve dans la colonne `notes` de la relation avec le proche au profil suspect.
+
+
 
 ## Épilogue
 
