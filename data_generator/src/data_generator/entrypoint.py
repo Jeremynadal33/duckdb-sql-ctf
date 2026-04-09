@@ -86,6 +86,39 @@ def graph(
 
 
 @app.command()
+def locations(
+    output: Path = typer.Option(
+        Path(__file__).resolve().parents[3] / "docs" / "map" / "locations.js",
+        help="Chemin du fichier JS généré",
+    ),
+) -> None:
+    """Génère docs/map/locations.js depuis les constantes Python."""
+    from data_generator.constants import (
+        ARCHIVES_CITY, ARCHIVES_LAT, ARCHIVES_LON,
+        CITY_HALL_CITY, CITY_HALL_LAT, CITY_HALL_LON,
+        LIBRARY_CITY, LIBRARY_LAT, LIBRARY_LON,
+        QUACKIE_CITY, QUACKIE_LAT, QUACKIE_LON,
+        TARGET_CITY, TARGET_LAT, TARGET_LON,
+    )
+
+    content = f"""// AUTO-GENERATED — do not edit manually.
+// Run: mise run generate:locations
+// Source: data_generator/src/data_generator/constants.py
+
+const LOCATION_COORDS = {{
+  library:   {{ lat: {LIBRARY_LAT}, lon: {LIBRARY_LON}, city: '{LIBRARY_CITY}' }},
+  archives:  {{ lat: {ARCHIVES_LAT}, lon: {ARCHIVES_LON}, city: '{ARCHIVES_CITY}' }},
+  city_hall: {{ lat: {CITY_HALL_LAT}, lon: {CITY_HALL_LON}, city: '{CITY_HALL_CITY}' }},
+  quackie:   {{ lat: {QUACKIE_LAT}, lon: {QUACKIE_LON}, city: '{QUACKIE_CITY}' }},
+  target:    {{ lat: {TARGET_LAT}, lon: {TARGET_LON}, city: '{TARGET_CITY}' }},
+}};
+"""
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(content, encoding="utf-8")
+    typer.echo(f"Generated: {output}")
+
+
+@app.command()
 def postgres(
     upload: bool = typer.Option(True, help="Upload answer file to S3"),
 ) -> None:

@@ -134,9 +134,33 @@ QUACKIE_CHAN_BADGE_ID = "BADGE-0042"
 # Like target date to the day before the ctf, target city to where the ctf is given, etc.
 TARGET_DATE = date(2026, 4, 22)
 QUACKIE_DEATH_DATE = TARGET_DATE - timedelta(days=30)
+
+# Bibliothèque du Lac — point de départ (scénario 1)
+LIBRARY_CITY = "Bordeaux"
+LIBRARY_LAT = 44.87383720544609
+LIBRARY_LON = -0.5728187300381997
+
+# Archives Municipales — registres nationaux (scénario 3)
+ARCHIVES_CITY = "Bordeaux"
+ARCHIVES_LAT = 44.847105194415995
+ARCHIVES_LON = -0.5539175146997978
+
+# Hôtel de Ville — informations administratives (scénario 3)
+CITY_HALL_CITY = "Bordeaux"
+CITY_HALL_LAT = 44.84003190271778
+CITY_HALL_LON = -0.5788558745417992
+
+# Domicile de Quackie Chan — victime (scénario 4)
+QUACKIE_CITY = "Bordeaux"
+QUACKIE_LAT = 44.883994690921455
+QUACKIE_LON = -0.5783725032146239
+
+# Domicile de Hugh Quackman — suspect final (scénario 5)
 TARGET_CITY = "Paris"
-TARGET_LAT = 48.879226
-TARGET_LON = 2.283274
-DECOY_CITY = "Bordeaux"
-DECOY_LAT = 44.837789
-DECOY_LON = -0.579187
+TARGET_LAT = 48.87971881975437
+TARGET_LON = 2.2835799241186945
+
+# Alias utilisés dans les anciens générateurs
+DECOY_CITY = LIBRARY_CITY
+DECOY_LAT = LIBRARY_LAT
+DECOY_LON = LIBRARY_LON

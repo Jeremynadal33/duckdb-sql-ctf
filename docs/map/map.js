@@ -1,98 +1,193 @@
-// === Configuration ===
-const IS_LOCAL = false;
-const LOCATIONS_URL = IS_LOCAL
-  ? `${location.origin}/dev-data/locations.parquet`
-  : null; // TODO: URL CloudFront/S3 en prod
+// ── Lieux de l'enquête — affichage progressif selon la progression ─
+// Chaque lieu est révélé après la completion du scénario indiqué (0 = toujours visible)
+// Coordonnées chargées depuis locations.js (généré par: mise run generate:locations)
+// Pour modifier les coordonnées, éditer constants.py puis relancer generate:locations
+const C = typeof LOCATION_COORDS !== 'undefined' ? LOCATION_COORDS : {};
 
-const ROLE_COLORS = { target: "#f85149", decoy: "#f0c000", library: "#58a6ff" };
+const LOCATIONS = [
+  {
+    unlockAfter: 0,
+    lat: C.library?.lat ?? 44.87383720544609, lon: C.library?.lon ?? -0.5728187300381997,
+    label: 'Bibliothèque du Lac',
+    sublabel: C.library?.city ?? 'Bordeaux',
+    note: 'Point de départ. Registres de prêts suspects découverts ici.',
+    type: 'library',
+  },
+  {
+    unlockAfter: 2,
+    lat: C.archives?.lat ?? 44.847105194415995, lon: C.archives?.lon ?? -0.5539175146997978,
+    label: 'Archives Municipales',
+    sublabel: C.archives?.city ?? 'Bordeaux',
+    note: 'Registres nationaux consultés pour l\'identification du suspect.',
+    type: 'archive',
+  },
+  {
+    unlockAfter: 3,
+    lat: C.city_hall?.lat ?? 44.84003190271778, lon: C.city_hall?.lon ?? -0.5788558745417992,
+    label: 'Hotel de Ville',
+    sublabel: C.city_hall?.city ?? 'Bordeaux',
+    note: 'Mairie de Bordeaux. Lieu pour récupérer des informations administratives sur les suspects',
+    type: 'mairie',
+  },
+  {
+    unlockAfter: 4,
+    lat: C.quackie?.lat ?? 44.883994690921455, lon: C.quackie?.lon ?? -0.5783725032146239,
+    label: 'Domicile de Quackie Chan',
+    sublabel: C.quackie?.city ?? 'Bordeaux',
+    note: 'Adresse relevée lors du géocodage inversé. Personne décédée — badge déjà usurpé.',
+    type: 'victim',
+  },
+  {
+    unlockAfter: 5,
+    lat: 46.66676058512701, lon: 0.36749264120380337,
+    label: 'Arret au Futuroscope parce qu\'il aime bien les parcs d\'attractions',
+    sublabel: 'Poitiers',
+    note: 'Petit kiffe perso pour le suspect, pas forcément pertinent pour l\'enquête mais ça nous a fait rire de le mettre dans le scénario alors on le laisse !',
+    type: 'suspect',
+  },
+  {
+    unlockAfter: 5,
+    lat: C.target?.lat ?? 48.87971881975437, lon: C.target?.lon ?? 2.2835799241186945,
+    label: 'Domicile de Hugh Quackman',
+    sublabel: C.target?.city ?? 'Paris',
+    note: 'Adresse du suspect final. Il était parmis nous depuis le début, surveiller bien votre entourage !',
+    type: 'suspect',
+  },
+];
 
-// === DuckDB-WASM setup ===
-import * as duckdb from "https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.29.0/+esm";
+const COLORS = {
+  text:     '#111',
+  sublabel: '#4a90d9',
+  note:     '#333',
+};
 
-let db;
-window._db = () => db;
+const TYPE_COLORS = {
+  library: '#4a90d9',
+  archive: '#f0c000',
+  mairie:  '#f0c000',
+  victim:  '#e8956d',
+  suspect: '#f85149',
+};
 
-async function initDB() {
-  const JSDELIVR_BUNDLES = duckdb.getJsDelivrBundles();
-  const bundle = await duckdb.selectBundle(JSDELIVR_BUNDLES);
+const TYPE_LABELS = {
+  library: 'Bibliothèque',
+  archive: 'Archives',
+  mairie:  'Mairie',
+  victim:  'Victime',
+  suspect: 'Suspect',
+};
 
-  const workerUrl = URL.createObjectURL(
-    new Blob([`importScripts("${bundle.mainWorker}");`], { type: "text/javascript" })
-  );
-  const worker = new Worker(workerUrl);
-  const logger = new duckdb.ConsoleLogger();
-  db = new duckdb.AsyncDuckDB(logger, worker);
-  await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
-  URL.revokeObjectURL(workerUrl);
+// ── Lecture de la progression depuis le cache ─────────────────────
+
+function getUnlockedScenarios() {
+  const pseudo = localStorage.getItem('ctf_agent');
+  const unlocked = new Set([0]);
+  if (!pseudo) return unlocked;
+  try {
+    const raw = localStorage.getItem('ctf_data_cache');
+    if (!raw) return unlocked;
+    const { rows } = JSON.parse(raw);
+    for (const row of (rows ?? [])) {
+      if (row.pseudo === pseudo && row.scenario) {
+        unlocked.add(Number(row.scenario));
+      }
+    }
+  } catch (_) {}
+  return unlocked;
 }
 
-// === Map ===
-
-function setStatus(msg) {
-  const el = document.getElementById("status");
-  if (el) el.textContent = msg;
+function getVisibleLocations() {
+  const unlocked = getUnlockedScenarios();
+  const max = unlocked.size > 1 ? Math.max(...unlocked) : 0;
+  return LOCATIONS.filter(loc => loc.unlockAfter <= max);
 }
 
-function makeLeafletIcon(color) {
+// ── Leaflet ───────────────────────────────────────────────────────
+
+function makeIcon(type) {
+  const color = TYPE_COLORS[type] ?? '#8b949e';
   return L.divIcon({
-    className: "",
-    html: `<div style="width:14px;height:14px;background:${color};border:3px solid #0d1117;border-radius:50%;box-shadow:0 0 8px ${color}99"></div>`,
+    className: '',
+    html: `<div style="width:14px;height:14px;background:${color};border:3px solid #0d1117;border-radius:50%;box-shadow:0 0 8px ${color}88"></div>`,
     iconSize: [14, 14],
     iconAnchor: [7, 7],
   });
 }
 
-async function loadMap() {
-  if (!LOCATIONS_URL) {
-    setStatus("URL carte non configur\u00e9e.");
-    return;
+let leafletMap = null;
+let markersLayer = null;
+let routeLine    = null;
+
+function renderMap(locations) {
+  if (!leafletMap) {
+    leafletMap = L.map('map', { center: [46.5, 1.8], zoom: 6 });
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      maxZoom: 19,
+    }).addTo(leafletMap);
   }
 
-  const leafletMap = L.map("map", { center: [46.8, 1.7], zoom: 6 });
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: '\u00a9 <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-    maxZoom: 19,
-  }).addTo(leafletMap);
+  // Clear previous markers and route
+  if (markersLayer) markersLayer.clearLayers();
+  else markersLayer = L.layerGroup().addTo(leafletMap);
+  if (routeLine) { routeLine.remove(); routeLine = null; }
 
-  const response = await fetch(LOCATIONS_URL);
-  await db.registerFileBuffer("locations.parquet", new Uint8Array(await response.arrayBuffer()));
-  const conn = await db.connect();
-  const result = await conn.query("SELECT * FROM read_parquet('locations.parquet')");
-  await conn.close();
+  if (!locations.length) return;
 
-  const rows = result.toArray().map(r => r.toJSON());
   const markers = [];
-  const routeCoords = [];
+  const coords  = [];
 
-  for (const row of rows) {
-    const color = ROLE_COLORS[row.role] ?? "#8b949e";
-    const m = L.marker([row.lat, row.lon], { icon: makeLeafletIcon(color) })
-      .addTo(leafletMap)
-      .bindPopup(`<strong>${row.person}</strong><br><span style="color:#888;font-size:0.8rem">${row.city}</span><br><br>${row.note}<br><code style="font-size:0.75rem">${row.lat.toFixed(6)}, ${row.lon.toFixed(6)}</code>`);
+  for (const loc of locations) {
+    const color = TYPE_COLORS[loc.type] ?? '#8b949e';
+    const m = L.marker([loc.lat, loc.lon], { icon: makeIcon(loc.type) })
+      .bindPopup(`
+        <strong style="color:${COLORS.text}">${loc.label}</strong><br>
+        <span style="color:${COLORS.sublabel};font-size:0.78rem">${loc.sublabel}</span><br><br>
+        <span style="font-size:0.82rem;color:${COLORS.note}">${loc.note}</span><br>
+        <code style="font-size:0.7rem;color:${color}">${loc.lat.toFixed(5)}, ${loc.lon.toFixed(5)}</code>
+      `);
+    markersLayer.addLayer(m);
     markers.push(m);
-    routeCoords.push([row.lat, row.lon]);
+    coords.push([loc.lat, loc.lon]);
   }
 
-  if (routeCoords.length > 1) {
-    L.polyline(routeCoords, { color: "#484f58", weight: 2, dashArray: "6 4" }).addTo(leafletMap);
+  if (coords.length > 1) {
+    routeLine = L.polyline(coords, { color: '#2a3f62', weight: 2, dashArray: '6 4' }).addTo(leafletMap);
   }
 
   leafletMap.invalidateSize();
-  leafletMap.fitBounds(L.featureGroup(markers).getBounds().pad(0.3));
+  const group = L.featureGroup(markers);
+  leafletMap.fitBounds(group.getBounds().pad(0.4));
 
-  window._leafletMap = () => leafletMap;
+  // Update legend
+  renderLegend(locations);
 }
 
-// === Main ===
-
-async function main() {
-  try {
-    await initDB();
-    await loadMap();
-  } catch (err) {
-    setStatus(`Erreur carte : ${err.message}`);
-    console.error(err);
-  }
+function renderLegend(locations) {
+  const legend = document.getElementById('map-legend');
+  if (!legend) return;
+  const types = [...new Set(locations.map(l => l.type))];
+  legend.innerHTML = types.map(t =>
+    `<span class="legend-item">
+      <span class="legend-dot" style="background:${TYPE_COLORS[t]}"></span>
+      ${TYPE_LABELS[t]}
+    </span>`
+  ).join('');
 }
 
-main();
+// ── Mise à jour réactive ──────────────────────────────────────────
+
+function refresh() {
+  renderMap(getVisibleLocations());
+}
+
+// Lancer immédiatement (le script est chargé après le DOM avec src normal)
+refresh();
+
+// Mise à jour si un scénario est débloqué dans le même onglet
+window.addEventListener('ctf:data-updated', refresh);
+
+// Mise à jour cross-onglet
+window.addEventListener('storage', e => {
+  if (e.key === 'ctf_data_cache') refresh();
+});

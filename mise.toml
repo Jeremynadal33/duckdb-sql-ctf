@@ -139,6 +139,11 @@ run = "aws sso login --profile ctf"
 
 # ===== Site web =====
 
+[tasks."generate:locations"]
+description = "Générer docs/map/locations.js depuis les constantes Python"
+dir = "data_generator"
+run = "uv run ctf-generate locations"
+
 [tasks.web]
 description = "Servir le site CTF en local sur http://localhost:8080"
 run = "python3 -m http.server 8080 --directory docs"
