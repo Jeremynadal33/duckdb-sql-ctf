@@ -248,15 +248,15 @@ def generate_graph_db(output_dir: Path) -> Path:
          for r in relationships],
     )
 
-    con.execute("""
-        CREATE PROPERTY GRAPH social_network
-        VERTEX TABLES (persons)
-        EDGE TABLES (
-            relationships
-                SOURCE KEY (person_id_1) REFERENCES persons (id)
-                DESTINATION KEY (person_id_2) REFERENCES persons (id)
-        )
-    """)
+    # con.execute("""
+        # CREATE PROPERTY GRAPH social_network
+        # VERTEX TABLES (persons)
+        # EDGE TABLES (
+        #     relationships
+        #         SOURCE KEY (person_id_1) REFERENCES persons (id)
+        #         DESTINATION KEY (person_id_2) REFERENCES persons (id)
+    #     )
+    # """)
 
     con.close()
     return db_path

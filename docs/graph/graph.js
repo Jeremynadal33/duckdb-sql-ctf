@@ -33,29 +33,29 @@ async function initDuckDB() {
   con = await db.connect();
 }
 
-// ── Query via GRAPH_TABLE (DuckPGQ) ──────────────────────────────
+// ── Query graph tables (plain SQL — duckpgq unavailable in WASM) ─
 
-async function queryGraph(graphName = 'social_network') {
-  // All edges with both endpoint properties
+async function queryGraph(schema = '') {
+  // All edges with both endpoint properties (plain SQL — duckpgq unavailable in WASM)
+  const pfx = schema ? `${schema}.` : '';
   const r = await con.query(`
-    FROM GRAPH_TABLE (${graphName}
-      MATCH (p1:persons)-[r:relationships]->(p2:persons)
-      COLUMNS (
-        p1.id           AS src_id,
-        p1.first_name   AS src_first_name,
-        p1.last_name    AS src_last_name,
-        p1.occupation   AS src_occupation,
-        p1.notes        AS src_notes,
-        p2.id           AS dst_id,
-        p2.first_name   AS dst_first_name,
-        p2.last_name    AS dst_last_name,
-        p2.occupation   AS dst_occupation,
-        p2.notes        AS dst_notes,
-        r.id            AS rel_id,
-        r.relationship_type,
-        r.notes         AS rel_notes
-      )
-    )
+    SELECT
+      p1.id           AS src_id,
+      p1.first_name   AS src_first_name,
+      p1.last_name    AS src_last_name,
+      p1.occupation   AS src_occupation,
+      p1.notes        AS src_notes,
+      p2.id           AS dst_id,
+      p2.first_name   AS dst_first_name,
+      p2.last_name    AS dst_last_name,
+      p2.occupation   AS dst_occupation,
+      p2.notes        AS dst_notes,
+      r.id            AS rel_id,
+      r.relationship_type,
+      r.notes         AS rel_notes
+    FROM ${pfx}relationships r
+    JOIN ${pfx}persons p1 ON r.person_id_1 = p1.id
+    JOIN ${pfx}persons p2 ON r.person_id_2 = p2.id
   `);
 
   const rows = r.toArray();
@@ -103,7 +103,7 @@ async function loadFromFile(file) {
 
     await con.query(`ATTACH '${file.name}' AS social (READ_ONLY)`);
 
-    const { persons, relationships } = await queryGraph('social.social_network');
+    const { persons, relationships } = await queryGraph('social');
     buildGraph(persons, relationships);
     setStatus('ok', `${persons.length} noeuds · ${relationships.length} liens`);
   } catch (e) {
@@ -136,7 +136,7 @@ async function loadFromS3(keyId, secret, bucket) {
     try { await con.query('DETACH social'); } catch (_) {}
     await con.query(`ATTACH 's3://${bucket}/data/social_network.duckdb' AS social (READ_ONLY)`);
 
-    const { persons, relationships } = await queryGraph('social.social_network');
+    const { persons, relationships } = await queryGraph('social');
     buildGraph(persons, relationships);
     setStatus('ok', `${persons.length} noeuds · ${relationships.length} liens`);
   } catch (e) {

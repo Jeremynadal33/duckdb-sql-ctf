@@ -2,7 +2,7 @@
 python = "3.13"
 uv = "latest"
 terraform = "latest"
-duckdb = "1.5.0"
+duckdb = "1.4.4"
 
 [env]
 _.file = { path = ".env", ignore_missing = true }
