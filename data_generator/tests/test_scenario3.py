@@ -50,19 +50,19 @@ class TestKeyPersons:
 class TestCities:
     def test_city_count(self):
         fake = _make_fake()
-        cities = _create_cities(fake)
+        cities = _create_cities(fake, "FLAG{fake_scenario6}")
         assert len(cities) == NUM_CITIES
 
     def test_target_and_decoy_present(self):
         fake = _make_fake()
-        cities = _create_cities(fake)
+        cities = _create_cities(fake, "FLAG{fake_scenario6}")
         city_names = [c.city_name for c in cities]
         assert TARGET_CITY in city_names
         assert DECOY_CITY in city_names
 
     def test_decoy_has_flag(self):
         fake = _make_fake()
-        cities = _create_cities(fake)
+        cities = _create_cities(fake, "FLAG{fake_scenario6}")
         decoy = next(c for c in cities if c.city_name == DECOY_CITY)
         expected_flag = build_scenario3_flag()
         assert decoy.city_metadata["info"] == expected_flag
@@ -73,14 +73,14 @@ class TestCities:
 
     def test_target_has_hint(self):
         fake = _make_fake()
-        cities = _create_cities(fake)
+        cities = _create_cities(fake, "FLAG{fake_scenario6}")
         target = next(c for c in cities if c.city_name == TARGET_CITY)
         assert "carte" in target.city_metadata["info"]
 
     def test_target_and_decoy_have_high_ids_position(self):
         """TARGET_CITY and DECOY_CITY should be at the end of the list (high IDs)."""
         fake = _make_fake()
-        cities = _create_cities(fake)
+        cities = _create_cities(fake, "FLAG{fake_scenario6}")
         assert cities[-2].city_name == TARGET_CITY
         assert cities[-1].city_name == DECOY_CITY
 

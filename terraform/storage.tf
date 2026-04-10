@@ -2,9 +2,9 @@ resource "aws_s3_bucket" "ctf" {
   bucket = var.bucket_name
 
   tags = { Name = var.bucket_name }
-  lifecycle {
-    prevent_destroy = true
-  }
+  # lifecycle {
+  #   prevent_destroy = true
+  # }
 }
 
 resource "aws_s3_bucket_public_access_block" "ctf" {
@@ -42,6 +42,20 @@ resource "aws_s3_bucket_policy" "public_results" {
         Principal = "*"
         Action    = "s3:GetObject"
         Resource  = "${aws_s3_bucket.ctf.arn}/leaderboard/ctf-events/*"
+      },
+      {
+        Sid       = "PublicReadLibraryLogs"
+        Effect    = "Allow"
+        Principal = "*"
+        Action    = "s3:GetObject"
+        Resource  = "${aws_s3_bucket.ctf.arn}/data/library_logs.zip"
+      },
+      {
+        Sid       = "PublicReadNetworkData"
+        Effect    = "Allow"
+        Principal = "*"
+        Action    = "s3:GetObject"
+        Resource  = "${aws_s3_bucket.ctf.arn}/data/network.duckdb"
       },
       {
         Sid       = "PublicListCtfEvents"
@@ -84,6 +98,18 @@ resource "aws_s3_object" "answer_scenario_5" {
   bucket  = aws_s3_bucket.ctf.id
   key     = "leaderboard/answers/scenario_5.txt"
   content = local.flag_scenario5
+}
+
+resource "aws_s3_object" "answer_scenario_6" {
+  bucket  = aws_s3_bucket.ctf.id
+  key     = "leaderboard/answers/scenario_6.txt"
+  content = local.flag_scenario6
+}
+
+resource "aws_s3_object" "answer_scenario_7" {
+  bucket  = aws_s3_bucket.ctf.id
+  key     = "leaderboard/answers/scenario_7.txt"
+  content = local.flag_scenario7
 }
 
 resource "aws_s3_bucket_notification" "user_inputs" {

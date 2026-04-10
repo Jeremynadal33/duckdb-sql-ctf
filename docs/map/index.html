@@ -15,7 +15,7 @@
     <span class="logo-duck">🦆</span>
     <div class="logo-text">
       <span class="logo-op">OPERATION</span>
-      <span class="logo-name">CANARDS</span>
+      <span class="logo-name">DOSSIERS</span>
       <span class="logo-sub">DISPARUS</span>
     </div>
   </a>
@@ -58,21 +58,19 @@
     </div>
   </header>
 
-  <div class="content">
-    <div id="map" style="height:calc(100vh - 100px)"></div>
-    <div class="map-legend">
-      <span class="legend-dot" style="background:#f85149"></span>Cible
-      <span class="legend-dot" style="background:#f0c000;margin-left:1rem"></span>Leurre
-      <span class="legend-dot" style="background:#5b9cf6;margin-left:1rem"></span>Bibliotheque
-    </div>
+  <div class="content" style="padding:0;position:relative">
+    <div id="map" style="height:calc(100vh - 44px)"></div>
+    <div id="map-legend" class="map-legend"></div>
   </div>
 
 </div>
 </div>
 
 <script src="../agent.js"></script>
+<script src="../data-agent.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
-<script type="module" src="map.js"></script>
+<script src="locations.js"></script>
+<script src="map.js"></script>
 
 </body>
 </html>

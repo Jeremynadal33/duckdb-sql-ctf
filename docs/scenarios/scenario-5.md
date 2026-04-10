@@ -4,50 +4,65 @@ label: Réseau
 titre: Le Réseau du Suspect
 techniques:
     - ATTACH : https://duckdb.org/docs/sql/statements/attach.html
-    - DuckPGQ : https://duckdb.org/docs/extensions/pgq.html
-    - PROPERTY GRAPH
-    - GRAPH_TABLE : https://duckdb.org/docs/extensions/pgq.html#graph-table-function
-    - MATCH
-flag: FLAG{canards_anti_criminels_mission_accomplie}
-flag_label: FLAG FINAL
+    - Visualiseur graphe : ../graph/
+    - DuckPGQ : https://duckdb.org/community_extensions/extensions/duckpgq
+    - PROPERTY GRAPH : https://duckdb.org/docs/current/guides/sql_features/graph_queries#creating-a-property-graph
+    - MATCH : https://duckdb.org/docs/current/guides/sql_features/graph_queries#pattern-matching
 ---
 
-Le médecin est décédé, son badge a été usurpé. Mais qui avait accès à son entourage ? L'administration vous transmet une base de données du **réseau social** de la bibliothèque. Chargez-la depuis S3 et explorez les relations — un proche de Quackie Chan a un profil particulièrement troublant.
+Le médecin est décédé, son badge a été usurpé. Mais qui pouvait y avoir accès dans son entourage ?
+Les métadonnées récupérées pointent vers une base de données du réseau social de la bibliothèque. Cartographiez les relations autour de Quackie Chan : l'un de ses proches a un profil particulièrement troublant.
+
+&nbsp; 
+
+Deux approches s'offrent à vous : explorer le graphe visuellement via le [visualiseur graphique](../graph/), ou utiliser l'extension DuckPGQ en "SQL".
 
 ## Objectifs
 
-1. Charger la base DuckDB depuis S3
-2. Explorer les tables `persons` et `relationships`
-3. Construire un **property graph** avec DuckPGQ
-4. Traverser le graphe depuis Quackie Chan
-5. Identifier le proche suspect et récupérer le flag dans la colonne `notes`
+1. Charger la base du réseau de **Quackie Chan**
+2. Si **Chemin B** : Construire un graph à partir des tables `persons` et `relationships` à l'aide de DuckDBPGQ
+3. Parcourir le graph et identifier le proche suspect afin de trouver le flag
 
 ## Indices
 
-### Indice 1 — Charger la base depuis S3
+### Chemin A - Indice 1 : Le visualiseur de graphe
 
-```sql
-INSTALL httpfs; LOAD httpfs;
+Ouvrez le [visualiseur de graphe](../graph/) intégré au site. Deux options pour charger les données :
 
-CREATE SECRET s3_secret (
-    TYPE S3,
-    KEY_ID 'votre_access_key',
-    SECRET 'votre_secret_key',
-    REGION 'eu-west-1'
-);
+- **Depuis S3** : collez le chemin `s3://bucket/data/network.duckdb` dans le champ S3 et cliquez *Charger*
+- **Fichier local** : téléchargez le fichier `.duckdb` et importez-le via le bouton *Fichier .duckdb*
 
-ATTACH 's3://bucket/data/network.duckdb' AS social (READ_ONLY);
-SHOW ALL TABLES;
+### Chemin A - Indice 2 : Les proches de Quackie Chan
+
+Une fois le graphe affiché :
+
+1. Cherchez **Quackie Chan** via le champ de recherche
+2. **Double-cliquez** sur le nœud pour isoler son voisinage
+
+### Chemin A - Indice 3 : Ou chercher
+
+1. Repérez le chemin en 2 sauts : Quackie → Soeur → Conjoint
+5. Le flag apparaît dans le champ **Notes** (surligné en vert)
+
+
+
+### Chemin B - Indice 1 : Télécharger la base depuis S3
+
+```bash
+curl -O https://duckdb-sql-ctf.s3.eu-west-1.amazonaws.com/data/network.duckdb
 ```
 
-### Indice 2 — Explorer les tables
+### Chemin B - Indice 2 : Explorer les tables
 
 ```sql
+ATTACH '<path>/network.duckdb' AS social (READ_ONLY);
 SELECT * FROM social.persons LIMIT 10;
 SELECT * FROM social.relationships LIMIT 10;
 ```
 
-### Indice 3 — Activer DuckPGQ et créer le graphe
+### Chemin B - Indice 3 : Création du graph avec DuckPGQ (SQL)
+
+> **Attention :** l'extension communautaire DuckPGQ nécessite DuckDB **< 1.5.0**. Si vous utilisez une version plus récente, privilégiez le Chemin A (visualiseur) ci-dessus.
 
 ```sql
 INSTALL duckpgq FROM community;
@@ -62,20 +77,24 @@ EDGE TABLES (
 );
 ```
 
-### Indice 4 — Traverser le graphe depuis Quackie Chan
+### Chelin B - Indice 4 : Traverser le graphe depuis Quackie Chan
+
+> Cet indice concerne le Chemin B (DuckPGQ). Si vous utilisez le visualiseur, l'indice 3a suffit.
+
+Le suspect n'a pas de lien direct avec Quackie — il faut traverser un intermédiaire.
 
 ```sql
 FROM GRAPH_TABLE (social_network
-    MATCH (p1:persons)-[r:relationships]->(p2:persons)
+    MATCH (p1:persons)-[r1:relationships]->(p2:persons)-[r2:relationships]->(p3:persons)
     WHERE p1.first_name = 'Quackie' AND p1.last_name = 'Chan'
-    COLUMNS (p2.first_name, p2.last_name, p2.occupation, r.relationship_type, r.notes)
+    COLUMNS (p2.first_name AS inter_prenom, p2.last_name AS inter_nom,
+             r1.relationship_type AS lien_1,
+             p3.first_name AS suspect_prenom, p3.last_name AS suspect_nom,
+             p3.occupation, r2.relationship_type AS lien_2, r2.notes)
 );
 ```
 
 Le flag se trouve dans la colonne `notes` de la relation avec le proche au profil suspect.
 
-## Épilogue
 
-*Les agents du C.A.C. se rendent à l'adresse identifiée. Ils trouvent le suspect, incapable de fuir : il ne pouvait pas se résoudre à abandonner les 12 petits qu'il venait de récupérer. Ils étaient trop mignons.*
 
-*Affaire classée. Dossier archivé au 2ème buisson du Lac de Bordeaux.*

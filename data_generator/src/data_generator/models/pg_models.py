@@ -44,13 +44,3 @@ class CityInformation(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     city_name: str = Field(max_length=100)
     city_metadata: Any = Field(default=None, sa_column=Column("metadata", SA_JSON))
-
-
-class Relationship(SQLModel, table=True):
-    __tablename__ = "relationships"
-
-    id: int | None = Field(default=None, primary_key=True)
-    person_id_1: int = Field(foreign_key="persons.id")
-    person_id_2: int = Field(foreign_key="persons.id")
-    relationship_type: str
-    notes: str | None = None

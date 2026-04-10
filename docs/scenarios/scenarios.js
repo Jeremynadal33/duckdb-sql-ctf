@@ -64,7 +64,7 @@ function buildSteps(md) {
   if (!md?.trim()) return '';
   return md.split('\n')
     .filter(l => /^\s*\d+\./.test(l))
-    .map(l => `<li>${marked.parseInline(l.replace(/^\s*\d+\.\s*/, ''))}</li>`)
+    .map(l => `<li><span>${marked.parseInline(l.replace(/^\s*\d+\.\s*/, ''))}</span></li>`)
     .join('');
 }
 
@@ -98,12 +98,6 @@ function mdToPanel(raw) {
   const contextHTML  = marked.parse((sections['__context__'] || []).join('\n').trim());
   const stepsHTML    = buildSteps((sections['Objectifs'] || []).join('\n'));
   const hintsHTML    = buildHints((sections['Indices'] || []).join('\n'));
-  const flagNote     = meta.flag_note ? `<p>${meta.flag_note}</p>` : '';
-  const epilogueKey  = Object.keys(sections).find(k => /épilogue|epilogue/i.test(k));
-  const epilogueHTML = epilogueKey
-    ? `<div class="sc-epilogue">${marked.parse(sections[epilogueKey].join('\n').trim())}</div>`
-    : '';
-
   return `
     <div class="sc-aside">
       <div class="sc-index">${numStr}</div>
@@ -117,20 +111,14 @@ function mdToPanel(raw) {
       <div class="sc-context">${contextHTML}</div>
       <div class="sc-section">OBJECTIFS</div>
       <ol class="sc-steps">${stepsHTML}</ol>
-      <div class="sc-flag">
-        <div class="sc-flag-label">${meta.flag_label || 'FLAG ATTENDU'}</div>
-        <code>${meta.flag || ''}</code>
-        ${flagNote}
-      </div>
       <div class="sc-section">INDICES</div>
       <div class="sc-hints">${hintsHTML}</div>
-      ${epilogueHTML}
     </div>`;
 }
 
 // ── Dynamic scenario loading ──────────────────────────────────────
 
-const SCENARIO_FILES = [1, 2, 3, 4, 5].map(n => `scenario-${n}.md`);
+const SCENARIO_FILES = [1, 2, 3, 4, 5, 6, 7].map(n => `scenario-${n}.md`);
 
 let _loadedRaw = null; // cache the markdown files (no need to re-fetch)
 
@@ -210,6 +198,58 @@ async function loadScenarios() {
       showScenario(b.dataset.scenario);
     })
   );
+
+  // Epilogue + mission badge when all flags are validated
+  const allSolved     = unlocked.has(SCENARIO_FILES.length + 1);
+  const epiloguePanel = document.getElementById('epilogue-panel');
+  const missionStamp  = document.querySelector('.mission-stamp');
+  const missionCard   = document.querySelector('.mission-card');
+
+  if (allSolved) {
+    const lastScenario = scenarios[scenarios.length - 1];
+    if (lastScenario && epiloguePanel) {
+      const body     = lastScenario.raw.replace(/^---\n[\s\S]*?\n---\n/, '');
+      const sections = {};
+      let cur = '__context__';
+      for (const line of body.split('\n')) {
+        if (/^## /.test(line)) { cur = line.slice(3).trim(); sections[cur] = []; }
+        else (sections[cur] ??= []).push(line);
+      }
+      const epilogueKey = Object.keys(sections).find(k => /épilogue|epilogue/i.test(k));
+      if (epilogueKey) {
+        const text = marked.parse(sections[epilogueKey].join('\n').trim());
+        epiloguePanel.className = 'sc-epilogue-banner';
+        epiloguePanel.innerHTML = `<div class="sc-epilogue-label">ÉPILOGUE</div><div class="sc-epilogue-text">${text}</div>`;
+        epiloguePanel.hidden = false;
+      }
+    }
+    if (missionStamp) { missionStamp.textContent = 'MISSION ACCOMPLIE'; missionStamp.classList.add('mission-done'); }
+    if (missionCard)  { missionCard.classList.add('mission-done'); }
+  } else {
+    if (epiloguePanel) { epiloguePanel.hidden = true; epiloguePanel.innerHTML = ''; }
+    if (missionStamp) { missionStamp.textContent = 'MISSION ACTIVE'; missionStamp.classList.remove('mission-done'); }
+    if (missionCard)  { missionCard.classList.remove('mission-done'); }
+  }
+
+  // Track hint expansions
+  panelsContainer.querySelectorAll('.sc-panel').forEach(panel => {
+    const scenario = Number(panel.id.replace('scenario-panel-', ''));
+    panel.querySelectorAll('details').forEach(details => {
+      details.addEventListener('toggle', () => {
+        if (!details.open) return;
+        const pseudo = localStorage.getItem('ctf_agent');
+        if (!pseudo) return;
+        const hintTitle = details.querySelector('summary')?.textContent || '';
+        fetch(`${API_URL}/hint-event`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pseudo, scenario, hint_title: hintTitle }),
+        })
+          .then(r => console.log('[hint-event]', r.status, hintTitle))
+          .catch(err => console.warn('[hint-event] error:', err));
+      });
+    });
+  });
 
   // Restore active scenario if still unlocked, else show first
   const targetScenario = (activeScenario && unlocked.has(activeScenario))

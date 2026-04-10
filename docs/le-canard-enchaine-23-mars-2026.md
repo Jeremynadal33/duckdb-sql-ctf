@@ -12,7 +12,7 @@ Le Dr. Chan, décrit par ses collègues comme « discret mais apprécié », tra
 
 > *« C'est incompréhensible »*, confie un collègue sous couvert d'anonymat. *« Quackie n'avait pas d'ennemis. Et surtout, son badge a continué d'être utilisé après sa disparition. Quelqu'un s'en est servi. »*
 
-Les enquêteurs du C.A.C. (Canards Anti-Criminels) ont ouvert une investigation pour déterminer qui a pu utiliser le badge du défunt médecin. Les archives d'accès pourraient s'avérer déterminantes — à condition de remonter suffisamment loin dans le temps.
+Les enquêteurs du C.A.C. ont ouvert une investigation pour déterminer qui a pu utiliser le badge du défunt médecin. Les archives d'accès pourraient s'avérer déterminantes — à condition de remonter suffisamment loin dans le temps.
 
 ---
 

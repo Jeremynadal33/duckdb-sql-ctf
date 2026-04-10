@@ -210,3 +210,11 @@ def generate_logs(config: CTFConfig, output_dir: Path) -> Path:
             zf.writestr(filename, json.dumps(records, ensure_ascii=False, indent=2))
 
     return zip_path
+
+
+def upload_to_s3(config: CTFConfig, zip_path: Path) -> None:
+    """Upload the library_logs.zip to S3 for public download."""
+    import boto3
+
+    s3 = boto3.client("s3")
+    s3.upload_file(str(zip_path), config.s3_bucket_name, "data/library_logs.zip")

@@ -14,7 +14,7 @@
     <span class="logo-duck">🦆</span>
     <div class="logo-text">
       <span class="logo-op">OPERATION</span>
-      <span class="logo-name">CANARDS</span>
+      <span class="logo-name">DOSSIERS</span>
       <span class="logo-sub">DISPARUS</span>
     </div>
   </a>
@@ -61,17 +61,21 @@
 
     <div class="mission-card">
       <div class="mission-stamp">MISSION ACTIVE</div>
-      <h1 class="mission-title">Operation Canards Disparus</h1>
-      <p>Une alerte a ete remontee par la <strong>Bibliotheque du Lac</strong> : des documents officiels empruntes n'ont pas ete retournes. Un nombre anormalement eleve concerne le meme type de document.</p>
-      <p>Votre mission : identifier les documents manquants, remonter la piste de l'emprunteur, decouvrir son identite et comprendre ses motivations.</p>
+      <h1 class="mission-title">Operation Dossiers Disparus</h1>
+      <p>Une alerte a ete remontee par la <strong>Bibliotheque du Lac</strong> : un nombre anormal de documents officiels empruntes n'ont pas ete retournes.</p>
+      <p>Votre mission : identifier les documents manquants, remonter la piste de l'emprunteur, decouvrir son identite, comprendre ses motivations et appréhender le coupable.</p>
       <div class="mission-prereq">
         <span class="prereq-tag">PRE-REQUIS</span>
         <a href="https://duckdb.org/docs/installation/" target="_blank">Installer DuckDB &rarr;</a>
         <span class="prereq-note">Toutes les requetes se font en local via DuckDB</span>
       </div>
+      <div class="mission-unlock-notice">
+        A la fin de chaque scenario, <a href="#" class="unlock-flag-link" onclick="openSubmitHelper(); return false;">soumettez votre flag</a> pour debloquer le scenario suivant.
+      </div>
     </div>
 
     <div id="scenario-chain" class="scenario-chain"></div>
+    <div id="epilogue-panel" hidden></div>
     <div id="scenario-panels"></div>
 
   </div>
@@ -122,6 +126,15 @@ COPY (
 <script src="scenarios.js"></script>
 <script>
   const overlay = document.getElementById('submit-overlay');
+
+  function openSubmitHelper() {
+    document.querySelectorAll('.helper-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.helper-pane').forEach(p => p.classList.remove('active'));
+    document.querySelector('.helper-tab[data-tab="submit"]').classList.add('active');
+    document.getElementById('helper-submit').classList.add('active');
+    overlay.hidden = false;
+  }
+
   document.getElementById('submit-btn').addEventListener('click', () => { overlay.hidden = false; });
   document.getElementById('submit-close').addEventListener('click', () => { overlay.hidden = true; });
   overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.hidden = true; });

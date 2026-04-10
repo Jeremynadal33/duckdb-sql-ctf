@@ -11,7 +11,9 @@ locals {
   flag_scenario2 = "FLAG{pg_host=${local.db_host},pg_port=${local.db_port},pg_user=${postgresql_role.readonly.name},pg_password=${postgresql_role.readonly.password},pg_dbname=${local.dbname}}"
   # flag_scenario3 is owned by the Python data generator (computed from GH_PAGES_BASE_URL + QUACKIE_DEATH_DATE)
   flag_scenario4 = "FLAG{s3://${aws_s3_bucket.ctf.bucket}/data/network.duckdb}"
-  flag_scenario5 = "FLAG{canards_anti_criminels_mission_accomplie}"
+  flag_scenario5 = "FLAG{un vrai papa poule}"
+  flag_scenario6 = "FLAG{check sur la carte il est dans le coin coin}"
+  flag_scenario7 = "FLAG{CAC : une autre mision accomplie}"
 
   # The hash of the answer checker image, used to trigger rebuilds when source files change
   answer_checker_src = fileset("${path.module}/../answer_checker", "src/**/*.py")

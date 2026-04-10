@@ -34,3 +34,18 @@ resource "aws_apigatewayv2_route" "pseudo_register" {
   route_key = "POST /register"
   target    = "integrations/${aws_apigatewayv2_integration.pseudo_register.id}"
 }
+
+# ── Hint event route ──
+
+resource "aws_apigatewayv2_integration" "hint_event" {
+  api_id                 = aws_apigatewayv2_api.pseudo.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = aws_lambda_function.hint_event.invoke_arn
+  payload_format_version = "2.0"
+}
+
+resource "aws_apigatewayv2_route" "hint_event" {
+  api_id    = aws_apigatewayv2_api.pseudo.id
+  route_key = "POST /hint-event"
+  target    = "integrations/${aws_apigatewayv2_integration.hint_event.id}"
+}

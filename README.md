@@ -1,4 +1,4 @@
-# Operation Canards Disparus — DuckDB SQL CTF
+# Operation Dossiers Disparus — DuckDB SQL CTF
 
 Un CTF (Capture The Flag) pour decouvrir DuckDB en apprenant a interroger plusieurs moteurs de bases de donnees (JSON, Parquet, PostgreSQL, Iceberg).
 

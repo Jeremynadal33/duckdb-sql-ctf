@@ -1,7 +1,7 @@
 /* ── Agent pseudo — partagé sur toutes les pages ── */
 
 const STORAGE_KEY = 'ctf_agent';
-const API_URL = 'https://puv6ful7ll.execute-api.eu-west-1.amazonaws.com/';
+const API_URL = 'https://hn4qoatkok.execute-api.eu-west-1.amazonaws.com/';
 
 function getPseudo()          { return localStorage.getItem(STORAGE_KEY); }
 function setPseudo(p)         { localStorage.setItem(STORAGE_KEY, p); }
@@ -39,7 +39,7 @@ function injectModal() {
   overlay.id = 'agent-overlay';
   overlay.innerHTML = `
     <div id="agent-modal">
-      <div class="modal-stamp">OPERATION CANARDS DISPARUS</div>
+      <div class="modal-stamp">OPERATION DOSSIERS DISPARUS</div>
       <div class="modal-title">IDENTIFICATION AGENT</div>
       <p class="modal-desc">Entrez votre pseudo pour commencer l'enquête</p>
       <input id="agent-input" type="text" placeholder="Agent_Duck" maxlength="20" autocomplete="off" spellcheck="false">

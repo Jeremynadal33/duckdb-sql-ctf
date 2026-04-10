@@ -152,7 +152,7 @@
     <span class="logo-duck">🦆</span>
     <div class="logo-text">
       <span class="logo-op">OPERATION</span>
-      <span class="logo-name">CANARDS</span>
+      <span class="logo-name">DOSSIERS</span>
       <span class="logo-sub">DISPARUS</span>
     </div>
   </a>
@@ -194,10 +194,8 @@
 
       <!-- S3 tab -->
       <span class="conn-label">S3</span>
-      <input class="conn-input" id="s3-key"    placeholder="access_key_id"    style="width:130px">
-      <input class="conn-input" id="s3-secret" placeholder="secret_access_key" style="width:150px" type="password">
-      <input class="conn-input" id="s3-bucket" placeholder="bucket" style="width:110px">
-      <button class="conn-btn primary" id="btn-s3">Connecter S3</button>
+      <input class="conn-input" id="s3-path" placeholder="s3://bucket/data/database.duckdb" style="width:300px">
+      <button class="conn-btn primary" id="btn-s3">Charger</button>
 
       <div class="conn-status">
         <span class="status-dot" id="status-dot"></span>
@@ -216,7 +214,7 @@
       <div class="conn-sep" style="margin:0 0.5rem"></div>
 
       <label>EXPLORER</label>
-      <input class="conn-input" id="search-input" placeholder="Rechercher un nom…" style="width:160px">
+      <input class="conn-input" id="search-input" placeholder="Rechercher un nom…" style="width:260px">
       <button class="lay-btn" id="btn-reset-view" style="display:none">✕ Tout afficher</button>
 
       <div class="legend">
@@ -227,7 +225,7 @@
 
     <div id="empty-state">
       <span class="big">⬡</span>
-      <span>Chargez un fichier <code>.duckdb</code> ou connectez-vous à S3 pour visualiser le réseau</span>
+      <span>Chargez un fichier <code>.duckdb</code> ou entrez un chemin S3 pour visualiser le réseau</span>
     </div>
     <div id="cy" style="display:none"></div>
 

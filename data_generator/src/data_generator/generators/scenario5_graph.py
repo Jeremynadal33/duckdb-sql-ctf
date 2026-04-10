@@ -12,7 +12,6 @@ from data_generator.config import CTFConfig
 from data_generator.constants import (
     FAKER_SEED,
     FIGURANT_NAMES,
-    FLAG_SCENARIO5,
     QUACKIE_CHAN_EMPLOYEE_ID,
 )
 
@@ -31,10 +30,11 @@ RELATIONSHIP_TYPES = [
 
 FAMILY_TYPES = ["frère", "sœur", "parent", "enfant", "conjoint", "cousin"]
 
-QUACKO_CHAN_ID = 43
+QUACKIE_SISTER_ID  = 43
+HUGH_QUACKMAN_ID   = 44
 
 
-def _build_key_persons() -> list[dict]:
+def _build_key_persons(flag: str) -> list[dict]:
     return [
         {
             "id": QUACKIE_CHAN_EMPLOYEE_ID,
@@ -45,19 +45,27 @@ def _build_key_persons() -> list[dict]:
             "notes": "Décédé. Ancien employé de la Clinique du Lac.",
         },
         {
-            "id": QUACKO_CHAN_ID,
-            "first_name": "Quacko",
+            "id": QUACKIE_SISTER_ID,
+            "first_name": "Quackella",
             "last_name": "Chan",
-            "date_of_birth": date(1980, 4, 15).isoformat(),
-            "occupation": "Éleveur de canards",
-            "notes": "Connu du service vétérinaire pour détention illégale d'animaux protégés.",
+            "date_of_birth": date(1982, 6, 21).isoformat(),
+            "occupation": "Assistante vétérinaire",
+            "notes": "",
+        },
+        {
+            "id": HUGH_QUACKMAN_ID,
+            "first_name": "Hugh",
+            "last_name": "Quackman",
+            "date_of_birth": date(1979, 11, 8).isoformat(),
+            "occupation": "Taxidermiste",
+            "notes": f"Pere de famille, ex mari de Quackella. A un casier judiciaire pour etre {flag}",
         },
     ]
 
 
 def _build_noise_persons(fake: Faker) -> list[dict]:
     persons = []
-    used_ids = {QUACKIE_CHAN_EMPLOYEE_ID, QUACKO_CHAN_ID}
+    used_ids = {QUACKIE_CHAN_EMPLOYEE_ID, QUACKIE_SISTER_ID, HUGH_QUACKMAN_ID}
     for name in FIGURANT_NAMES:
         parts = name.split(" ", 1)
         pid = fake.unique.random_int(min=100, max=9999)
@@ -95,20 +103,30 @@ def _build_relationships(fake: Faker, all_persons: list[dict]) -> list[dict]:
     used_pairs: set[tuple[int, int]] = set()
     rel_id = 1
 
-    # ── Key relationship: Quacko is Quackie's brother — flag here ──
+    # ── Key chain: Quackie → sœur → Quackella → conjoint → Hugh Quackman (flag here) ──
     relationships.append({
         "id": rel_id,
-        "person_id_1": QUACKO_CHAN_ID,
-        "person_id_2": QUACKIE_CHAN_EMPLOYEE_ID,
-        "relationship_type": "frère",
-        "notes": FLAG_SCENARIO5,
+        "person_id_1": QUACKIE_CHAN_EMPLOYEE_ID,
+        "person_id_2": QUACKIE_SISTER_ID,
+        "relationship_type": "sœur",
+        "notes": "",
     })
-    used_pairs.add((QUACKO_CHAN_ID, QUACKIE_CHAN_EMPLOYEE_ID))
+    used_pairs.add((QUACKIE_CHAN_EMPLOYEE_ID, QUACKIE_SISTER_ID))
+    rel_id += 1
+
+    relationships.append({
+        "id": rel_id,
+        "person_id_1": QUACKIE_SISTER_ID,
+        "person_id_2": HUGH_QUACKMAN_ID,
+        "relationship_type": "conjoint",
+        "notes": "",
+    })
+    used_pairs.add((QUACKIE_SISTER_ID, HUGH_QUACKMAN_ID))
     rel_id += 1
 
     # Quackie has a few noise connections (colleagues, friends) to make graph exploration interesting
-    noise_ids = [p["id"] for p in all_persons if p["id"] not in (QUACKIE_CHAN_EMPLOYEE_ID, QUACKO_CHAN_ID)]
-    for pid in random.sample(noise_ids, min(6, len(noise_ids))):
+    noise_ids = [p["id"] for p in all_persons if p["id"] not in (QUACKIE_CHAN_EMPLOYEE_ID, QUACKIE_SISTER_ID, HUGH_QUACKMAN_ID)]
+    for pid in random.sample(noise_ids, min(3, len(noise_ids))):
         pair = (min(QUACKIE_CHAN_EMPLOYEE_ID, pid), max(QUACKIE_CHAN_EMPLOYEE_ID, pid))
         if pair not in used_pairs:
             relationships.append({
@@ -121,8 +139,8 @@ def _build_relationships(fake: Faker, all_persons: list[dict]) -> list[dict]:
             used_pairs.add(pair)
             rel_id += 1
 
-    # Noise relationships between random persons
-    person_ids = [p["id"] for p in all_persons]
+    # Noise relationships between random persons (exclude Quackie to control his degree)
+    person_ids = [p["id"] for p in all_persons if p["id"] != QUACKIE_CHAN_EMPLOYEE_ID]
     attempts = 0
     while len(relationships) < NUM_NOISE_RELATIONSHIPS + len(relationships[:7]) and attempts < 5000:
         attempts += 1
@@ -144,50 +162,7 @@ def _build_relationships(fake: Faker, all_persons: list[dict]) -> list[dict]:
     return relationships
 
 
-def _export_cytoscape_json(
-    all_persons: list[dict], relationships: list[dict], output_dir: Path
-) -> Path:
-    """Export graph data as Cytoscape.js-compatible JSON for the web visualization."""
-    import json
-
-    nodes = [
-        {
-            "data": {
-                "id": str(p["id"]),
-                "label": f"{p['first_name']} {p['last_name']}",
-                "occupation": p.get("occupation", ""),
-                "notes": p.get("notes", ""),
-                "key": p["id"] in (QUACKIE_CHAN_EMPLOYEE_ID, QUACKO_CHAN_ID),
-                "isVictim": p["id"] == QUACKIE_CHAN_EMPLOYEE_ID,
-                "isSuspect": p["id"] == QUACKO_CHAN_ID,
-            }
-        }
-        for p in all_persons
-    ]
-
-    edges = [
-        {
-            "data": {
-                "id": f"rel-{r['id']}",
-                "source": str(r["person_id_1"]),
-                "target": str(r["person_id_2"]),
-                "label": r["relationship_type"],
-                "notes": r["notes"],
-                "isKeyEdge": bool(r["notes"]),
-            }
-        }
-        for r in relationships
-    ]
-
-    graph_json = output_dir / "graph_data.json"
-    graph_json.write_text(
-        json.dumps({"nodes": nodes, "edges": edges}, ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
-    return graph_json
-
-
-def generate_graph_db(output_dir: Path) -> Path:
+def generate_graph_db(output_dir: Path, flag: str) -> Path:
     """Generate the network.duckdb file locally."""
     import duckdb
 
@@ -201,17 +176,10 @@ def generate_graph_db(output_dir: Path) -> Path:
     # Remove existing file for idempotency
     db_path.unlink(missing_ok=True)
 
-    key_persons = _build_key_persons()
+    key_persons = _build_key_persons(flag)
     noise_persons = _build_noise_persons(fake)
     all_persons = key_persons + noise_persons
     relationships = _build_relationships(fake, all_persons)
-
-    # Export JSON for the web visualization (also copy to docs/graph/ for local dev)
-    json_path = _export_cytoscape_json(all_persons, relationships, output_dir)
-    docs_graph_dir = Path(__file__).resolve().parents[5] / "docs" / "graph"
-    if docs_graph_dir.exists():
-        import shutil
-        shutil.copy2(json_path, docs_graph_dir / "data.json")
 
     con = duckdb.connect(str(db_path))
 
@@ -248,16 +216,6 @@ def generate_graph_db(output_dir: Path) -> Path:
          for r in relationships],
     )
 
-    con.execute("""
-        CREATE PROPERTY GRAPH social_network
-        VERTEX TABLES (persons)
-        EDGE TABLES (
-            relationships
-                SOURCE KEY (person_id_1) REFERENCES persons (id)
-                DESTINATION KEY (person_id_2) REFERENCES persons (id)
-        )
-    """)
-
     con.close()
     return db_path
 
@@ -272,15 +230,10 @@ def upload_to_s3(config: CTFConfig, output_dir: Path) -> None:
         config.s3_bucket_name,
         "data/network.duckdb",
     )
-    s3.upload_file(
-        str(output_dir / "graph_data.json"),
-        config.s3_bucket_name,
-        "data/graph_data.json",
-    )
 
 
 def generate_graph(config: CTFConfig, output_dir: Path, upload: bool = True) -> Path:
-    db_path = generate_graph_db(output_dir)
+    db_path = generate_graph_db(output_dir, config.flag_scenario5)
     if upload:
         upload_to_s3(config, output_dir)
     return db_path

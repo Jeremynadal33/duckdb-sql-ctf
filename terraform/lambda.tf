@@ -97,3 +97,48 @@ resource "aws_lambda_permission" "allow_apigw" {
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.pseudo.execution_arn}/*/*"
 }
+
+# ── Hint event Lambda ──
+
+resource "aws_cloudwatch_log_group" "hint_event" {
+  name              = "/aws/lambda/${var.bucket_name}-hint-event"
+  retention_in_days = 14
+
+  tags = { Name = "${var.bucket_name}-hint-event" }
+}
+
+resource "aws_lambda_function" "hint_event" {
+  function_name = "${var.bucket_name}-hint-event"
+  package_type  = "Image"
+  image_uri     = "${aws_ecr_repository.answer_checker.repository_url}:${local.answer_checker_hash}"
+  role          = aws_iam_role.lambda_hint_event.arn
+  timeout       = 30
+  memory_size   = 512
+
+  image_config {
+    command = ["answer_checker.hint_event.hint_event_handler"]
+  }
+
+  environment {
+    variables = {
+      BUCKET_NAME = var.bucket_name
+    }
+  }
+
+  architectures = ["arm64"]
+
+  depends_on = [
+    null_resource.answer_checker_build,
+    aws_cloudwatch_log_group.hint_event,
+  ]
+
+  tags = { Name = "${var.bucket_name}-hint-event" }
+}
+
+resource "aws_lambda_permission" "allow_apigw_hint_event" {
+  statement_id  = "AllowAPIGatewayInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.hint_event.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.pseudo.execution_arn}/*/*"
+}
