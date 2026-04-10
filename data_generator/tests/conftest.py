@@ -16,4 +16,7 @@ def fake_config() -> CTFConfig:
         s3_bucket_name="duckdb-sql-ctf",
         iam_access_key_id="AKIAIOSFODNN7EXAMPLE",
         iam_secret_access_key="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+        flag_scenario4="FLAG{fake_scenario4}",
+        flag_scenario5="FLAG{fake_scenario5}",
+        flag_scenario6="FLAG{fake_scenario6}",
     )

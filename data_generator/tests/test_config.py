@@ -17,6 +17,9 @@ class TestCTFConfig:
             s3_bucket_name="bucket",
             iam_access_key_id="AKIA",
             iam_secret_access_key="secret",
+            flag_scenario4="FLAG{test4}",
+            flag_scenario5="FLAG{test5}",
+            flag_scenario6="FLAG{test6}",
         )
         assert config.db_host == "mydb.example.com"
         assert config.db_port == 5432
@@ -32,6 +35,9 @@ class TestCTFConfig:
             s3_bucket_name="bucket",
             iam_access_key_id="AKIA",
             iam_secret_access_key="secret",
+            flag_scenario4="FLAG{test4}",
+            flag_scenario5="FLAG{test5}",
+            flag_scenario6="FLAG{test6}",
         )
         assert config.db_host == "mydb.example.com"
         assert config.db_port == 5432
@@ -48,6 +54,9 @@ class TestLoadConfig:
             "iam_access_key_id": {"value": "AKIAEXAMPLE"},
             "ssm_pg_master_password": {"value": "/ctf/pg_master_password"},
             "ssm_pg_readonly_password": {"value": "/ctf/pg_readonly_password"},
+            "flag_scenario4": {"value": "FLAG{test4}"},
+            "flag_scenario5": {"value": "FLAG{test5}"},
+            "flag_scenario6": {"value": "FLAG{test6}"},
         }
 
         def mock_run(args, **kwargs):
