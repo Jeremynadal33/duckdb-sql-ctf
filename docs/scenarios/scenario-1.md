@@ -37,7 +37,13 @@ GROUP BY document_type
 ORDER BY nb DESC;
 ```
 
+
 ### Indice 3 — Reconstituer le flag
+* Utiliser une [CTE](https://learnsql.com/blog/what-is-common-table-expression/) afin d'extraire le champ souhaité et d'ordonner les documents
+* Ensuite, utiliser les fonctions [array_agg](https://duckdb.org/docs/current/sql/functions/aggregates#listarg) 
+* Enfin, utiliser [array_to_string](https://duckdb.org/docs/current/sql/functions/list#array_to_stringlist-delimiter) afin de facilement afficher le résultat
+
+### Indice 4 — Solution
 
 ```sql
 with data as (

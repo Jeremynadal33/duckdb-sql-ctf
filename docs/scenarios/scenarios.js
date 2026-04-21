@@ -3,6 +3,10 @@
 function getUnlockedFromCache(pseudo) {
   const unlocked = new Set([1]);
   if (!pseudo) return unlocked;
+  if (typeof isAdminPseudo === 'function' && isAdminPseudo(pseudo)) {
+    for (let i = 1; i <= SCENARIO_FILES.length + 1; i++) unlocked.add(i);
+    return unlocked;
+  }
   try {
     const raw = localStorage.getItem('ctf_data_cache');
     if (!raw) return unlocked;
@@ -239,6 +243,7 @@ async function loadScenarios() {
         if (!details.open) return;
         const pseudo = localStorage.getItem('ctf_agent');
         if (!pseudo) return;
+        if (typeof isAdminPseudo === 'function' && isAdminPseudo(pseudo)) return;
         const hintTitle = details.querySelector('summary')?.textContent || '';
         fetch(`${API_URL}/hint-event`, {
           method: 'POST',

@@ -24,6 +24,8 @@ Regardez autour de vous. Le suspect est ici, quelque part dans la salle. Trouvez
 
 ## Épilogue
 
-*Les agents du C.A.C. se rendent à l'adresse identifiée. Ils trouvent le suspect, incapable de fuir : il ne pouvait pas se résoudre à abandonner les 12 petits qu'il venait de récupérer. Ils étaient trop mignons.*
+*Les agents du C.A.C. (Canards Anti Criminel) se rendent à l'adresse identifiée. Ils trouvent le suspect, incapable de fuir : il ne pouvait pas se résoudre à abandonner les 12 petits qu'il venait de récupérer. Ils étaient trop mignons.*
 
 *Affaire classée. Dossier archivé au 2ème buisson du Lac de Bordeaux.*
+
+*Eh oui ! On parlait bien de canards depuis le début, coin !*

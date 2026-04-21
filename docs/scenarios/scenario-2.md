@@ -21,7 +21,7 @@ Grâce aux credentials (*AWS*) du scénario précédent, vous accédez aux archi
 ### Indice 1 — Lire des fichiers Parquet depuis S3
 
 ```sql
-SELECT * FROM read_parquet('s3://bucket-name/data/employees/*.parquet') LIMIT 10;
+SELECT * FROM read_parquet('s3://<path-to-table>/*.parquet') LIMIT 10;
 ```
 
 ### Indice 2 — Fuzzy matching

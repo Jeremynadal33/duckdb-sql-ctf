@@ -2,9 +2,11 @@
 
 const STORAGE_KEY = 'ctf_agent';
 const API_URL = 'https://hn4qoatkok.execute-api.eu-west-1.amazonaws.com/';
+const ADMIN_PSEUDO = 'adminpj';
 
 function getPseudo()          { return localStorage.getItem(STORAGE_KEY); }
 function setPseudo(p)         { localStorage.setItem(STORAGE_KEY, p); }
+function isAdminPseudo(p)     { return p === ADMIN_PSEUDO; }
 
 function renderBadge(pseudo) {
   document.querySelectorAll('.agent-badge').forEach(el => {
@@ -14,6 +16,9 @@ function renderBadge(pseudo) {
 }
 
 async function registerPseudo(pseudo) {
+  if (pseudo.trim().toLowerCase() === ADMIN_PSEUDO) {
+    return { ok: true, pseudo: ADMIN_PSEUDO };
+  }
   const resp = await fetch(`${API_URL}/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

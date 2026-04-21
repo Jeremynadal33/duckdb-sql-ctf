@@ -13,7 +13,7 @@ locals {
   flag_scenario4 = "FLAG{s3://${aws_s3_bucket.ctf.bucket}/data/network.duckdb}"
   flag_scenario5 = "FLAG{un vrai papa poule}"
   flag_scenario6 = "FLAG{check sur la carte il est dans le coin coin}"
-  flag_scenario7 = "FLAG{CAC : une autre mision accomplie}"
+  flag_scenario7 = "FLAG{CAC : une autre mission accomplie}"
 
   # The hash of the answer checker image, used to trigger rebuilds when source files change
   answer_checker_src = fileset("${path.module}/../answer_checker", "src/**/*.py")

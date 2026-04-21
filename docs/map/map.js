@@ -75,6 +75,10 @@ function getUnlockedScenarios() {
   const pseudo = localStorage.getItem('ctf_agent');
   const unlocked = new Set([0]);
   if (!pseudo) return unlocked;
+  if (typeof isAdminPseudo === 'function' && isAdminPseudo(pseudo)) {
+    LOCATIONS.forEach(loc => unlocked.add(loc.unlockAfter));
+    return unlocked;
+  }
   try {
     const raw = localStorage.getItem('ctf_data_cache');
     if (!raw) return unlocked;
