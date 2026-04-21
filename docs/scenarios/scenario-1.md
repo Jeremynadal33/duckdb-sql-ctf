@@ -16,6 +16,8 @@ La Bibliothèque du Lac vous transmet une archive [`library_logs.zip`](https://d
 1. Charger l'ensemble des fichiers JSON dans DuckDB
 2. Identifier les documents qui n'ont **pas été retournés**
 3. Déterminer quel **type de document** revient de façon suspecte
+4. Trouver et recomposer le flag, il vous donnera les creds AWS nécessaire pour la suite de l'enquête
+5. Utiliser le global helper afin de soumettre votre premier le flag ! 
 
 ## Indices
 

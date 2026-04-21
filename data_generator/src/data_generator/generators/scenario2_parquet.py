@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import random
+import shutil
 import string
 from datetime import timedelta
 from pathlib import Path
@@ -161,6 +162,8 @@ def _write_parquet_chunked(
     split_points = [0, *split_points, len(shuffled)]
 
     table_dir = output_dir / table_name
+    if table_dir.exists():
+        shutil.rmtree(table_dir)
     table_dir.mkdir(parents=True, exist_ok=True)
 
     paths = []
@@ -232,6 +235,15 @@ def generate_parquet(config: CTFConfig, output_dir: Path) -> Path:
     return output_dir
 
 
+def _delete_s3_prefix(s3, bucket: str, prefix: str) -> None:
+    """Delete every object under a bucket prefix."""
+    paginator = s3.get_paginator("list_objects_v2")
+    for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
+        objects = [{"Key": o["Key"]} for o in page.get("Contents", [])]
+        if objects:
+            s3.delete_objects(Bucket=bucket, Delete={"Objects": objects})
+
+
 def upload_to_s3(config: CTFConfig, output_dir: Path) -> None:
     """Upload generated Parquet files to S3."""
     import boto3
@@ -244,6 +256,7 @@ def upload_to_s3(config: CTFConfig, output_dir: Path) -> None:
 
     # Upload chunked parquet subdirectories (badges are handled by scenario 4 Iceberg generator)
     for table_name in ("employees", "departments"):
+        _delete_s3_prefix(s3, bucket, f"data/{table_name}/")
         table_dir = output_dir / table_name
         for parquet_file in sorted(table_dir.glob("*.parquet")):
             s3_key = f"data/{table_name}/{parquet_file.name}"

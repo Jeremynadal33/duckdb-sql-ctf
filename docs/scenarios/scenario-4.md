@@ -27,11 +27,6 @@ Les badges d'accès sont stockés sur les archives numériques (*S3*) au format 
 INSTALL iceberg; LOAD iceberg;
 ```
 
-### Indice 2 - Configurer l'extension pour des tables sans indices de versions
-```sql
-SET unsafe_enable_version_guessing = true;
-```
-
 ### Indice 2 — Scanner la table (dernier snapshot)
 
 ```sql

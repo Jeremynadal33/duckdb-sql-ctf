@@ -3,6 +3,7 @@ numero: 2
 label: Archives
 titre: Les Archives du Lac
 techniques:
+    - Explore S3 bucket : https://duckdb.org/docs/current/sql/functions/pattern_matching#glob-function-to-find-filenames
     - read_parquet : https://duckdb.org/docs/data/parquet/overview.html
     - jaro_winkler_similarity : https://duckdb.org/docs/current/sql/functions/text#jaro_winkler_similaritys1-s2-score_cutoff
 ---

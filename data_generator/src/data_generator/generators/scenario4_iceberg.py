@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import random
+import shutil
 import string
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -198,6 +199,12 @@ def _compute_snapshot_timestamps(total_snapshots: int) -> list[int]:
             # After death: space from 2 days after, 3 days apart per logical step
             steps_after = li - FLAG_SNAPSHOT_INDEX - 1
             ts = death_dt + timedelta(days=2 + steps_after * 3)
+        # Each overwrite() commits two snapshots (delete + append) that share
+        # a logical-update timestamp. Nudge each snapshot by i seconds so the
+        # append strictly follows its delete — otherwise snapshot_from_timestamp
+        # can resolve to the delete snapshot (Quackie's row removed) instead of
+        # the append that carries the flag metadata.
+        ts += timedelta(seconds=i)
         timestamps.append(int(ts.timestamp() * 1000))
 
     return timestamps
@@ -235,6 +242,15 @@ def _patch_metadata_timestamps(metadata_dir: Path) -> None:
         json.dump(metadata, f, indent=2)
 
 
+def _write_version_hint(metadata_dir: Path) -> None:
+    """Write version-hint.text pointing to the latest metadata file stem."""
+    meta_files = sorted(metadata_dir.glob("*.metadata.json"))
+    if not meta_files:
+        return
+    latest_stem = meta_files[-1].name.removesuffix(".metadata.json")
+    (metadata_dir / "version-hint.text").write_text(latest_stem)
+
+
 def generate_iceberg(config: CTFConfig, output_dir: Path, upload: bool = True) -> Path:
     """Generate an Iceberg badges table with multiple snapshots."""
     fake = Faker("fr_FR")
@@ -245,6 +261,8 @@ def generate_iceberg(config: CTFConfig, output_dir: Path, upload: bool = True) -
     table_dir.mkdir(parents=True, exist_ok=True)
 
     warehouse_path = output_dir / "iceberg_warehouse"
+    if warehouse_path.exists():
+        shutil.rmtree(warehouse_path)
     warehouse_path.mkdir(parents=True, exist_ok=True)
 
     catalog = load_catalog(
@@ -258,10 +276,6 @@ def generate_iceberg(config: CTFConfig, output_dir: Path, upload: bool = True) -
 
     # Create namespace and table
     catalog.create_namespace_if_not_exists(TABLE_NAMESPACE)
-    try:
-        catalog.drop_table(f"{TABLE_NAMESPACE}.{TABLE_NAME}")
-    except Exception:
-        pass
     table = catalog.create_table(f"{TABLE_NAMESPACE}.{TABLE_NAME}", schema=ICEBERG_SCHEMA)
 
     # Generate initial badges
@@ -286,6 +300,7 @@ def generate_iceberg(config: CTFConfig, output_dir: Path, upload: bool = True) -
     iceberg_table_dir = warehouse_path / TABLE_NAMESPACE / TABLE_NAME
     metadata_dir = iceberg_table_dir / "metadata"
     _patch_metadata_timestamps(metadata_dir)
+    _write_version_hint(metadata_dir)
 
     if upload:
         _upload_to_s3(config, iceberg_table_dir)
@@ -299,6 +314,12 @@ def _upload_to_s3(config: CTFConfig, iceberg_table_dir: Path) -> None:
 
     s3 = boto3.client("s3")
     bucket = config.s3_bucket_name
+
+    paginator = s3.get_paginator("list_objects_v2")
+    for page in paginator.paginate(Bucket=bucket, Prefix="data/badges/"):
+        objects = [{"Key": o["Key"]} for o in page.get("Contents", [])]
+        if objects:
+            s3.delete_objects(Bucket=bucket, Delete={"Objects": objects})
 
     for file_path in iceberg_table_dir.rglob("*"):
         if file_path.is_file():
