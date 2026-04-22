@@ -501,6 +501,10 @@ details pre code {
 
 details p { font-size: 0.95rem; color: var(--c-soft); line-height: 1.65; }
 details p code { color: var(--c-blue); }
+details ul { margin: 0; padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.35rem; }
+details li { font-size: 0.95rem; color: var(--c-soft); line-height: 1.65; }
+details a, .sc-context a { color: var(--c-blue); text-decoration: none; }
+details a:hover, .sc-context a:hover { text-decoration: underline; }
 
 /* ── SUBMIT ────────────────────────────────────────────────────── */
 
