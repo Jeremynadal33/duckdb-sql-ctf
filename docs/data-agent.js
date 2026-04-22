@@ -36,6 +36,20 @@ function _applyUpdate(rows, events, playerCount, missionEndTime) {
   window.dispatchEvent(new CustomEvent('ctf:data-updated', { detail: { rows, events, playerCount, missionEndTime } }));
 }
 
+// ── Bootstrap from cache (all tabs, instant render without waiting for leader) ──
+(function _bootstrapFromCache() {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return;
+    const { rows, events, playerCount, missionEndTime } = JSON.parse(raw);
+    window.dispatchEvent(new CustomEvent('ctf:data-updated', {
+      detail: { rows: rows ?? [], events: events ?? [], playerCount: playerCount ?? 0, missionEndTime: missionEndTime ?? null },
+    }));
+  } catch {}
+  // Ask the current leader to broadcast fresh data immediately
+  CTF_BC.postMessage({ type: 'ctf-wake' });
+})();
+
 // ── Leader logic ─────────────────────────────────────────────────
 
 async function _initDuckDB() {
@@ -318,6 +332,11 @@ async function _runLeader() {
       console.warn('[data-agent] poll error:', e);
     }
   }
+
+  // Respond to wake requests from newly-opened tabs
+  CTF_BC.addEventListener('message', ({ data }) => {
+    if (data.type === 'ctf-wake') poll();
+  });
 
   // If cache is fresh, delay first poll to avoid redundant fetch on page navigation
   const cacheAge = _getCacheAge();

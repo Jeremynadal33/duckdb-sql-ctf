@@ -14,3 +14,8 @@ L'enquête touche à sa fin, il faut maintenant trouver où se cache Hugh Quackm
 
 1. Se reconnecter à la base PostgreSQL et trouver ou se trouve Hugh Quackman
 
+## Indices
+
+### Indice 1 : Refaire le scénario 3
+
+Refaire les étapes en cherchant Hugh Quackman
