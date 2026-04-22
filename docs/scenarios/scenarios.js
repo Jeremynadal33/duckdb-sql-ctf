@@ -1,3 +1,35 @@
+// ── Mission state ─────────────────────────────────────────────────
+
+function getMissionEndTime() {
+  try {
+    const raw = localStorage.getItem('ctf_data_cache');
+    return raw ? (JSON.parse(raw).missionEndTime ?? null) : null;
+  } catch { return null; }
+}
+
+function _updateAdminActivateBtn(show) {
+  const pseudo  = localStorage.getItem('ctf_agent');
+  const isAdmin = pseudo && typeof isAdminPseudo === 'function' && isAdminPseudo(pseudo);
+  const btn     = document.getElementById('mission-gate-admin-btn');
+  if (!btn) return;
+
+  btn.style.display = (show && isAdmin) ? '' : 'none';
+
+  if (show && isAdmin && !btn._listenerAttached) {
+    btn._listenerAttached = true;
+    btn.addEventListener('click', () => {
+      const input = document.getElementById('mc-end-time');
+      if (input && !input.value) {
+        const d   = new Date(Date.now() + 90 * 60 * 1000);
+        const pad = n => String(n).padStart(2, '0');
+        input.value = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      }
+      const overlay = document.getElementById('mission-control-overlay');
+      if (overlay) overlay.hidden = false;
+    });
+  }
+}
+
 // ── Cache ─────────────────────────────────────────────────────────
 
 function getUnlockedFromCache(pseudo) {
@@ -127,8 +159,38 @@ const SCENARIO_FILES = [1, 2, 3, 4, 5, 6, 7].map(n => `scenario-${n}.md`);
 let _loadedRaw = null; // cache the markdown files (no need to re-fetch)
 
 async function loadScenarios() {
-  const pseudo   = localStorage.getItem('ctf_agent');
-  const unlocked = getUnlockedFromCache(pseudo);
+  const pseudo          = localStorage.getItem('ctf_agent');
+  const unlocked        = getUnlockedFromCache(pseudo);
+  const chain           = document.getElementById('scenario-chain');
+  const panelsContainer = document.getElementById('scenario-panels');
+  const missionStamp    = document.querySelector('.mission-stamp');
+  const missionCard     = document.querySelector('.mission-card');
+
+  // ── Mission gate ─────────────────────────────────────────────────
+  const missionActive = getMissionEndTime() != null;
+  if (!missionActive) {
+    chain.innerHTML           = '';
+    panelsContainer.innerHTML = '';
+    chain.style.display           = 'none';
+    panelsContainer.style.display = 'none';
+    if (missionStamp) {
+      missionStamp.textContent = 'MISSION DESACTIVEE';
+      missionStamp.classList.add('mission-inactive');
+      missionStamp.classList.remove('mission-done');
+    }
+    if (missionCard) {
+      missionCard.classList.add('mission-inactive');
+      missionCard.classList.remove('mission-done');
+    }
+    _updateAdminActivateBtn(true);
+    return;
+  }
+  chain.style.display           = '';
+  panelsContainer.style.display = '';
+  if (missionStamp) missionStamp.classList.remove('mission-inactive');
+  if (missionCard)  missionCard.classList.remove('mission-inactive');
+  _updateAdminActivateBtn(false);
+  // ────────────────────────────────────────────────────────────────
 
   // Fetch markdown files only once
   if (!_loadedRaw) {
@@ -148,8 +210,6 @@ async function loadScenarios() {
     .filter(Boolean)
     .sort((a, b) => Number(a.meta.numero || 0) - Number(b.meta.numero || 0));
 
-  const chain           = document.getElementById('scenario-chain');
-  const panelsContainer = document.getElementById('scenario-panels');
   chain.innerHTML           = '';
   panelsContainer.innerHTML = '';
 
@@ -206,8 +266,6 @@ async function loadScenarios() {
   // Epilogue + mission badge when all flags are validated
   const allSolved     = unlocked.has(SCENARIO_FILES.length + 1);
   const epiloguePanel = document.getElementById('epilogue-panel');
-  const missionStamp  = document.querySelector('.mission-stamp');
-  const missionCard   = document.querySelector('.mission-card');
 
   if (allSolved) {
     const lastScenario = scenarios[scenarios.length - 1];
@@ -269,8 +327,9 @@ async function loadScenarios() {
 
 // ── Boot ─────────────────────────────────────────────────────────
 
-let _currentUnlocked = new Set([1]);
-let _updating = false;
+let _currentUnlocked  = new Set([1]);
+let _missionWasActive = getMissionEndTime() != null;
+let _updating         = false;
 
 function setsEqual(a, b) {
   if (a.size !== b.size) return false;
@@ -282,10 +341,12 @@ async function checkAndUpdate() {
   if (_updating) return;
   _updating = true;
   try {
-    const pseudo      = localStorage.getItem('ctf_agent');
-    const newUnlocked = getUnlockedFromCache(pseudo);
-    if (!setsEqual(newUnlocked, _currentUnlocked)) {
-      _currentUnlocked = newUnlocked;
+    const pseudo           = localStorage.getItem('ctf_agent');
+    const newUnlocked      = getUnlockedFromCache(pseudo);
+    const newMissionActive = getMissionEndTime() != null;
+    if (!setsEqual(newUnlocked, _currentUnlocked) || newMissionActive !== _missionWasActive) {
+      _currentUnlocked  = newUnlocked;
+      _missionWasActive = newMissionActive;
       await loadScenarios();
     }
   } finally {

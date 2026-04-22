@@ -53,6 +53,7 @@
       <span class="topbar-label">SCENARIOS</span>
     </div>
     <div class="topbar-right">
+      <span id="mission-timer" class="mission-timer"></span>
       <button id="submit-btn" class="submit-trigger">GLOBAL HELPERS</button>
       <span class="topbar-badge">DuckDB SQL CTF</span>
     </div>
@@ -73,6 +74,7 @@
       <div class="mission-unlock-notice">
         A la fin de chaque scenario, <a href="#" class="unlock-flag-link" onclick="openSubmitHelper(); return false;">soumettez votre flag</a> pour debloquer le scenario suivant.
       </div>
+      <button id="mission-gate-admin-btn" class="submit-trigger" style="display:none;margin-top:1.25rem">ACTIVER LA MISSION</button>
     </div>
 
     <div id="epilogue-panel" hidden></div>
@@ -122,6 +124,7 @@ COPY (
 </div>
 
 <script src="../agent.js"></script>
+<script src="../timer.js"></script>
 <script src="../data-agent.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked@9/marked.min.js"></script>
 <script src="scenarios.js"></script>

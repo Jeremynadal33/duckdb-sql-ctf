@@ -173,6 +173,40 @@ body {
 
 .topbar-label { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.18em; color: var(--c-text); }
 .topbar-badge { font-size: 0.65rem; letter-spacing: 0.1em; color: var(--c-soft); border: 1px solid var(--c-border); padding: 0.2rem 0.5rem; }
+.topbar-right { display: flex; align-items: center; gap: 0.6rem; }
+
+.mission-timer {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--c-accent);
+  font-variant-numeric: tabular-nums;
+  min-width: 6ch;
+  text-align: right;
+}
+.mission-timer.urgent { color: var(--c-red); animation: pulse-timer 1s infinite; }
+.mission-timer.expired { color: var(--c-muted); }
+@keyframes pulse-timer { 0%,100%{opacity:1} 50%{opacity:0.35} }
+
+/* ── MISSION GATE ──────────────────────────────────────────────── */
+
+.mission-card.mission-inactive {
+  border-top-color: var(--c-muted);
+}
+
+.mission-card.mission-inactive > *:not(#mission-gate-admin-btn) {
+  opacity: 0.4;
+}
+
+.mission-stamp.mission-inactive {
+  color: var(--c-muted);
+  border-color: rgba(96,128,170,0.4);
+}
+
+#mission-gate-admin-btn:hover {
+  background: var(--c-accent);
+  color: var(--c-bg);
+}
 
 /* ── CONTENT ───────────────────────────────────────────────────── */
 

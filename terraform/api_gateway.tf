@@ -35,6 +35,21 @@ resource "aws_apigatewayv2_route" "pseudo_register" {
   target    = "integrations/${aws_apigatewayv2_integration.pseudo_register.id}"
 }
 
+# ── Mission control route ──
+
+resource "aws_apigatewayv2_integration" "mission_control" {
+  api_id                 = aws_apigatewayv2_api.pseudo.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = aws_lambda_function.mission_control.invoke_arn
+  payload_format_version = "2.0"
+}
+
+resource "aws_apigatewayv2_route" "mission_control" {
+  api_id    = aws_apigatewayv2_api.pseudo.id
+  route_key = "POST /mission-control"
+  target    = "integrations/${aws_apigatewayv2_integration.mission_control.id}"
+}
+
 # ── Hint event route ──
 
 resource "aws_apigatewayv2_integration" "hint_event" {

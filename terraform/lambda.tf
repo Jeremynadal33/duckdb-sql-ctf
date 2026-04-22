@@ -194,6 +194,51 @@ resource "aws_lambda_permission" "allow_s3_compactor" {
   source_arn    = aws_s3_bucket.ctf.arn
 }
 
+# ── Mission Control Lambda ──
+
+resource "aws_cloudwatch_log_group" "mission_control" {
+  name              = "/aws/lambda/${var.bucket_name}-mission-control"
+  retention_in_days = 14
+
+  tags = { Name = "${var.bucket_name}-mission-control" }
+}
+
+resource "aws_lambda_function" "mission_control" {
+  function_name = "${var.bucket_name}-mission-control"
+  package_type  = "Image"
+  image_uri     = "${aws_ecr_repository.answer_checker.repository_url}:${local.answer_checker_hash}"
+  role          = aws_iam_role.lambda_mission_control.arn
+  timeout       = 30
+  memory_size   = 512
+
+  image_config {
+    command = ["answer_checker.mission_control.mission_control_handler"]
+  }
+
+  environment {
+    variables = {
+      BUCKET_NAME = var.bucket_name
+    }
+  }
+
+  architectures = ["arm64"]
+
+  depends_on = [
+    null_resource.answer_checker_build,
+    aws_cloudwatch_log_group.mission_control,
+  ]
+
+  tags = { Name = "${var.bucket_name}-mission-control" }
+}
+
+resource "aws_lambda_permission" "allow_apigw_mission_control" {
+  statement_id  = "AllowAPIGatewayInvokeMissionControl"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.mission_control.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.pseudo.execution_arn}/*/*"
+}
+
 # Safety net: even if every S3-triggered run is throttled or fails, the
 # snapshot catches up within 2 minutes.
 resource "aws_cloudwatch_event_rule" "compactor_schedule" {

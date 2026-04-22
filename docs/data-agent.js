@@ -26,14 +26,14 @@ const SNAPSHOT_URL  = `${S3_BASE_URL}/${SNAPSHOT_KEY}`;
 CTF_BC.onmessage = ({ data }) => {
   if (data.type !== 'ctf-update') return;
   console.log(`[data-agent] broadcast received: ${data.rows.length} rows, ${data.events.length} events, ${data.playerCount} players`);
-  _applyUpdate(data.rows, data.events, data.playerCount);
+  _applyUpdate(data.rows, data.events, data.playerCount, data.missionEndTime);
 };
 
-function _applyUpdate(rows, events, playerCount) {
+function _applyUpdate(rows, events, playerCount, missionEndTime) {
   try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify({ rows, events, playerCount, ts: Date.now() }));
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ rows, events, playerCount, missionEndTime, ts: Date.now() }));
   } catch {}
-  window.dispatchEvent(new CustomEvent('ctf:data-updated', { detail: { rows, events, playerCount } }));
+  window.dispatchEvent(new CustomEvent('ctf:data-updated', { detail: { rows, events, playerCount, missionEndTime } }));
 }
 
 // ── Leader logic ─────────────────────────────────────────────────
@@ -70,7 +70,7 @@ function _getCacheAge() {
 }
 
 async function _queryAll(conn, url) {
-  let rows = [], events = [], playerCount = 0;
+  let rows = [], events = [], playerCount = 0, missionEndTime = null;
 
   try {
     const r = await conn.query(`
@@ -139,7 +139,21 @@ async function _queryAll(conn, url) {
     playerCount = Number(r.toArray()[0]?.cnt ?? 0);
   } catch (e) { console.warn('[data-agent] playerCount query error', e); }
 
-  return { rows, events, playerCount };
+  try {
+    const r = await conn.query(`
+      SELECT CAST(json_extract_string(value, '$.end_time_ms') AS BIGINT) AS end_time_ms
+      FROM read_parquet('${url}')
+      WHERE action = 'MISSION_CONTROL'
+      ORDER BY timestamp DESC
+      LIMIT 1
+    `);
+    const mc = r.toArray();
+    if (mc.length > 0 && mc[0].end_time_ms != null) {
+      missionEndTime = Number(mc[0].end_time_ms);
+    }
+  } catch (e) { console.warn('[data-agent] missionEndTime query error', e); }
+
+  return { rows, events, playerCount, missionEndTime };
 }
 
 async function _runLeader() {
@@ -170,15 +184,15 @@ async function _runLeader() {
       } catch {}
 
       const t0 = performance.now();
-      const { rows, events, playerCount } = await _queryAll(conn, SNAPSHOT_URL);
+      const { rows, events, playerCount, missionEndTime } = await _queryAll(conn, SNAPSHOT_URL);
       await conn.close();
       console.log(`[data-agent] poll: query complete in ${Math.round(performance.now() - t0)}ms — ${rows.length} rows, ${events.length} events, ${playerCount} players`);
 
       // Broadcast + update cache FIRST, then persist fingerprint. Advancing the
       // fingerprint before the cache is written would let a mid-query tab close
       // leave the next leader skipping the work with stale cached data.
-      CTF_BC.postMessage({ type: 'ctf-update', rows, events, playerCount });
-      _applyUpdate(rows, events, playerCount);
+      CTF_BC.postMessage({ type: 'ctf-update', rows, events, playerCount, missionEndTime });
+      _applyUpdate(rows, events, playerCount, missionEndTime);
       _lastFingerprint = fingerprint;
       localStorage.setItem(FINGERPRINT_KEY, fingerprint);
 
