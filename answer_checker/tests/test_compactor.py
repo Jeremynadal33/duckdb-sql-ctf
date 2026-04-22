@@ -65,6 +65,8 @@ def moto_s3():
 def _write_event_parquet(tmp_path, filename: str, action: str, value: dict) -> str:
     path = str(tmp_path / filename)
     con = duckdb.connect()
+    # Needed for CI -> the package is not installed (but in the docker image this is not necessary)
+    con.execute("INSTALL httpfs;") 
     try:
         con.execute(
             f"""
