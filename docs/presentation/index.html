@@ -232,6 +232,104 @@
       gap: 0 2rem;
     }
 
+    .submission-card {
+      background: var(--c-surface);
+      border: 1px solid var(--c-border);
+      border-radius: 10px;
+      padding: 1.2rem 1.6rem;
+      margin-top: 1.2rem;
+      max-width: 1100px;
+      width: 100%;
+      text-align: left;
+    }
+    .submission-card h3 {
+      color: var(--c-accent);
+      font-size: 1.2rem;
+      margin-bottom: 0.6rem;
+    }
+    .submission-code {
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid var(--c-border);
+      border-radius: 6px;
+      padding: 0.9rem 1.1rem;
+      color: var(--c-soft);
+      font-size: 0.95rem;
+      line-height: 1.5;
+      overflow-x: auto;
+      white-space: pre;
+    }
+    .submission-code code {
+      background: transparent;
+      color: var(--c-soft);
+      padding: 0;
+      font-size: inherit;
+    }
+
+    /* ── ARCHITECTURE SLIDE ──────────────────────────────────────── */
+
+    .arch-svg {
+      width: 100%;
+      max-width: 1200px;
+      height: auto;
+      max-height: 78vh;
+      margin-top: 1rem;
+    }
+    .arch-zone-bg {
+      fill: rgba(17, 24, 40, 0.4);
+      stroke: var(--c-border);
+      stroke-dasharray: 4 4;
+      stroke-width: 1;
+    }
+    .arch-zone-label {
+      fill: var(--c-muted);
+      font-size: 13px;
+      font-weight: bold;
+      letter-spacing: 0.15em;
+      font-family: "Courier New", Courier, monospace;
+    }
+    .arch-box {
+      fill: var(--c-surface);
+      stroke: var(--c-border);
+      stroke-width: 1.5;
+      rx: 4;
+    }
+    .arch-box-gen     { stroke: var(--c-green); }
+    .arch-box-player  { stroke: var(--c-soft); }
+    .arch-box-s3      { stroke: var(--c-blue); }
+    .arch-box-lambda  { stroke: var(--c-accent); }
+    .arch-box-api     { stroke: var(--c-accent); }
+    .arch-box-db      { stroke: var(--c-blue); }
+    .arch-box-wasm    { stroke: var(--c-soft); }
+    .arch-label {
+      fill: var(--c-text);
+      font-size: 13px;
+      font-weight: bold;
+      text-anchor: middle;
+      font-family: "Courier New", Courier, monospace;
+    }
+    .arch-sublabel {
+      fill: var(--c-muted);
+      font-size: 10px;
+      text-anchor: middle;
+      font-family: "Courier New", Courier, monospace;
+    }
+    .arch-flow {
+      stroke: var(--c-muted);
+      stroke-width: 1.4;
+      fill: none;
+    }
+    .arch-flow-dashed {
+      stroke-dasharray: 4 3;
+    }
+    .arch-flow-invoke {
+      stroke: var(--c-accent);
+    }
+    .arch-flow-label {
+      fill: var(--c-soft);
+      font-size: 10px;
+      font-family: "Courier New", Courier, monospace;
+    }
+
     /* ── ABOUT US SLIDE ──────────────────────────────────────────── */
 
     #slide-2 {
@@ -483,6 +581,7 @@
     <ul>
       <li>Moteur de calcul OLAP in-process</li>
       <li>Le "SQLite de l'analytique"</li>
+      <li>Des stacks d'erreurs claires</li>
       <br>
       <li>SQL-first : syntaxe riche et moderne</li>
       <li>Open source, licence MIT</li>
@@ -511,9 +610,9 @@
       <li>Stockage colonnaire optimise</li>
       <li>Moteur d'execution vectorise</li>
       <li>Zero dependance externe</li>
-      <li>Des stacks d'erreurs claires</li>
       <li>Execution parallele automatique</li>
       <li>Optimiseur de requetes avance</li>
+      <li>Mais... Mono noeuds</li>
     </ul>
     <p class="small" style="margin-top:1.5rem;">
       <a href="https://duckdb.org/" target="_blank">duckdb.org</a>
@@ -639,8 +738,13 @@
     </p>
   </section>
 
-  <!-- ─── SLIDE 15: Scoring (rang, vitesse, malus hints) ─────── -->
+  <!-- ─── SLIDE 15: Webapp intro ─────────────────────────────── -->
   <section class="slide" id="slide-15">
+    <h1>Présentation de la webapp</h1>
+  </section>
+
+  <!-- ─── SLIDE 16: Scoring (rang, vitesse, malus hints) ─────── -->
+  <section class="slide" id="slide-16">
     <h2>Comment on vous note</h2>
     <p class="subtitle">Deux modes disponibles, un malus commun</p>
 
@@ -681,10 +785,17 @@
         <p class="scoring-foot">Hints ouverts après solve : ignorés. Plancher final : <strong>0 pts</strong>.</p>
       </div>
     </div>
+
+    <div class="submission-card">
+      <h3>Exemple de soumission d'un flag</h3>
+<pre class="submission-code"><code>COPY (
+    SELECT '&lt;pseudo&gt;' AS pseudo, &lt;N&gt; AS scenario, 'FLAG{...}' AS flag
+) TO 's3://&lt;bucket&gt;/user-inputs/&lt;pseudo&gt;_scenario_&lt;N&gt;.parquet' (FORMAT PARQUET);</code></pre>
+    </div>
   </section>
 
-  <!-- ─── SLIDE 16: Let's go! ────────────────────────────────── -->
-  <section class="slide" id="slide-16">
+  <!-- ─── SLIDE 17: Let's go! ────────────────────────────────── -->
+  <section class="slide" id="slide-17">
     <div class="big-emoji">🕵️‍♂️🦆</div>
     <h1>À VOS REQUÊTES !</h1>
     <p class="big-text">
@@ -695,6 +806,144 @@
         https://github.com/Jeremynadal33/duckdb-sql-ctf
       </a>
     </p>
+  </section>
+
+  <!-- ─── SLIDE 18: Architecture ─────────────────────────────── -->
+  <section class="slide" id="slide-18">
+    <h2>Architecture de la stack</h2>
+    <svg class="arch-svg" viewBox="0 0 1200 620" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+          <polygon points="0 0, 8 4, 0 8" fill="#6080aa"/>
+        </marker>
+        <marker id="arrow-yellow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+          <polygon points="0 0, 8 4, 0 8" fill="#f5c800"/>
+        </marker>
+      </defs>
+
+      <!-- Zones -->
+      <rect class="arch-zone-bg" x="10"  y="50" width="220" height="510"/>
+      <rect class="arch-zone-bg" x="250" y="50" width="200" height="510"/>
+      <rect class="arch-zone-bg" x="470" y="50" width="720" height="510"/>
+      <text class="arch-zone-label" x="120" y="40" text-anchor="middle">DATA GEN</text>
+      <text class="arch-zone-label" x="350" y="40" text-anchor="middle">JOUEUR / LOCAL</text>
+      <text class="arch-zone-label" x="830" y="40" text-anchor="middle">AWS</text>
+
+      <!-- DATA GEN -->
+      <rect class="arch-box arch-box-gen" x="30" y="200" width="180" height="70"/>
+      <text class="arch-label"    x="120" y="230">data_generator</text>
+      <text class="arch-sublabel" x="120" y="250">Python · Typer</text>
+      <text class="arch-sublabel" x="120" y="305">scenario1_logs</text>
+      <text class="arch-sublabel" x="120" y="323">scenario2_parquet</text>
+      <text class="arch-sublabel" x="120" y="341">scenario3_postgres</text>
+      <text class="arch-sublabel" x="120" y="359">scenario4_iceberg</text>
+      <text class="arch-sublabel" x="120" y="377">scenario5_graph</text>
+
+      <!-- JOUEUR / LOCAL -->
+      <rect class="arch-box arch-box-player" x="270" y="200" width="160" height="60"/>
+      <text class="arch-label"    x="350" y="228">CLI DuckDB</text>
+      <text class="arch-sublabel" x="350" y="246">(local)</text>
+
+      <rect class="arch-box arch-box-player" x="260" y="320" width="180" height="120"/>
+      <text class="arch-label"    x="350" y="342">Navigateur</text>
+      <text class="arch-sublabel" x="350" y="358">(GitHub Pages)</text>
+      <rect class="arch-box arch-box-wasm" x="278" y="370" width="144" height="55"/>
+      <text class="arch-label"    x="350" y="393">DuckDB WASM</text>
+      <text class="arch-sublabel" x="350" y="410">httpfs</text>
+
+      <!-- AWS Row 1 (TOP): S3 data/ -->
+      <rect class="arch-box arch-box-s3" x="490" y="80" width="220" height="45"/>
+      <text class="arch-label"    x="600" y="100">S3 data/</text>
+      <text class="arch-sublabel" x="600" y="115">logs · parquet · iceberg · duckdb</text>
+
+      <!-- AWS Row 1b: RDS PostgreSQL (stacked under S3 data/) -->
+      <rect class="arch-box arch-box-db" x="490" y="135" width="220" height="45"/>
+      <text class="arch-label"    x="600" y="155">RDS PostgreSQL</text>
+      <text class="arch-sublabel" x="600" y="170">scénario 2 (read-only)</text>
+
+      <!-- AWS Row 2: API Gateway + S3 user-inputs -->
+      <rect class="arch-box arch-box-api" x="490" y="205" width="160" height="45"/>
+      <text class="arch-label" x="570" y="232">API Gateway</text>
+
+      <rect class="arch-box arch-box-s3" x="680" y="205" width="160" height="45"/>
+      <text class="arch-label"    x="760" y="227">S3 user-inputs/</text>
+      <text class="arch-sublabel" x="760" y="241">*.parquet</text>
+
+      <!-- AWS Row 3: Lambdas + answer_checker -->
+      <rect class="arch-box arch-box-lambda" x="490" y="280" width="160" height="95"/>
+      <text class="arch-sublabel" x="570" y="300">λ Lambdas</text>
+      <text class="arch-sublabel" x="570" y="320">pseudo_register</text>
+      <text class="arch-sublabel" x="570" y="338">hint_event</text>
+      <text class="arch-sublabel" x="570" y="356">mission_control</text>
+
+      <rect class="arch-box arch-box-lambda" x="680" y="280" width="160" height="50"/>
+      <text class="arch-label"    x="760" y="302">λ answer_checker</text>
+      <text class="arch-sublabel" x="760" y="317">vs answers/*.txt</text>
+
+      <!-- AWS Row 4: ctf-events + compactor -->
+      <rect class="arch-box arch-box-s3" x="490" y="415" width="350" height="45"/>
+      <text class="arch-label" x="665" y="442">S3 leaderboard/ctf-events/*.parquet</text>
+
+      <rect class="arch-box arch-box-lambda" x="870" y="415" width="120" height="45"/>
+      <text class="arch-label" x="930" y="442">λ compactor</text>
+
+      <!-- AWS Row 5: snapshot.parquet -->
+      <rect class="arch-box arch-box-s3" x="580" y="490" width="280" height="45"/>
+      <text class="arch-label" x="720" y="517">snapshot.parquet</text>
+
+      <!-- ═══════════ FLOWS ═══════════ -->
+
+      <!-- Data gen → S3 data/ (write, solid) -->
+      <path class="arch-flow" d="M 210 220 C 300 180, 400 130, 490 108" marker-end="url(#arrow)"/>
+
+      <!-- Data gen → Postgres (write, solid) -->
+      <path class="arch-flow" d="M 210 235 C 300 220, 400 180, 490 160" marker-end="url(#arrow)"/>
+
+      <!-- S3 data/ → CLI DuckDB (read, dashed) -->
+      <path class="arch-flow arch-flow-dashed" d="M 490 120 C 465 150, 445 195, 432 215" marker-end="url(#arrow)"/>
+
+      <!-- Postgres → CLI DuckDB (read, dashed) -->
+      <path class="arch-flow arch-flow-dashed" d="M 490 170 C 470 195, 450 215, 432 228" marker-end="url(#arrow)"/>
+
+      <!-- CLI DuckDB → S3 user-inputs (write, COPY) -->
+      <path class="arch-flow" d="M 430 240 L 680 228" marker-end="url(#arrow)"/>
+
+      <!-- Navigateur → API Gateway (invoke POST) -->
+      <path class="arch-flow arch-flow-invoke" d="M 440 330 C 460 290, 470 240, 490 230" marker-end="url(#arrow-yellow)"/>
+
+      <!-- API Gateway → Lambdas (invoke) -->
+      <path class="arch-flow arch-flow-invoke" d="M 570 250 L 570 280" marker-end="url(#arrow-yellow)"/>
+
+      <!-- S3 user-inputs → answer_checker (S3 event, invoke) -->
+      <path class="arch-flow arch-flow-invoke" d="M 760 250 L 760 280" marker-end="url(#arrow-yellow)"/>
+
+      <!-- Lambdas → ctf-events (write) -->
+      <path class="arch-flow" d="M 570 375 L 570 415" marker-end="url(#arrow)"/>
+
+      <!-- answer_checker → ctf-events (write) -->
+      <path class="arch-flow" d="M 760 330 L 760 415" marker-end="url(#arrow)"/>
+
+      <!-- ctf-events → compactor (S3 event, invoke) -->
+      <path class="arch-flow arch-flow-invoke" d="M 840 437 L 870 437" marker-end="url(#arrow-yellow)"/>
+
+      <!-- compactor → snapshot.parquet (write) -->
+      <path class="arch-flow" d="M 930 460 C 930 480, 850 490, 820 495" marker-end="url(#arrow)"/>
+
+      <!-- snapshot.parquet → WASM (read, dashed) -->
+      <path class="arch-flow arch-flow-dashed" d="M 580 510 C 500 475, 460 425, 422 405" marker-end="url(#arrow)"/>
+
+      <!-- ═══════════ LEGEND ═══════════ -->
+      <g transform="translate(310, 585)">
+        <path class="arch-flow" d="M 0 8 L 50 8" marker-end="url(#arrow)"/>
+        <text class="arch-sublabel" x="60" y="12" style="text-anchor:start">écriture</text>
+
+        <path class="arch-flow arch-flow-invoke" d="M 180 8 L 230 8" marker-end="url(#arrow-yellow)"/>
+        <text class="arch-sublabel" x="240" y="12" style="text-anchor:start">invocation</text>
+
+        <path class="arch-flow arch-flow-dashed" d="M 380 8 L 430 8" marker-end="url(#arrow)"/>
+        <text class="arch-sublabel" x="440" y="12" style="text-anchor:start">lecture</text>
+      </g>
+    </svg>
   </section>
 
 </div>

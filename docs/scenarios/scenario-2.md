@@ -18,28 +18,64 @@ Grâce aux credentials (*AWS*) du scénario précédent, vous accédez aux archi
 
 ## Indices
 
-### Indice 1 — Lire des fichiers Parquet depuis S3
+### Indice 1 — Lister les fichiers 
+```sql
+SELECT * FROM glob('s3://duckdb-sql-ctf/**');
+```
+
+### Indice 2 — Lire des fichiers Parquet depuis S3
 
 ```sql
 SELECT * FROM read_parquet('s3://<path-to-table>/*.parquet') LIMIT 10;
 ```
 
-### Indice 2 — Fuzzy matching
+### Indice 3 — Fuzzy matching
 
 ```sql
-SELECT
-    e.first_name || ' ' || e.last_name AS employee_name, n.borrower_name,
-    jaro_winkler_similarity(n.borrower_name,
-        e.first_name || ' ' || e.last_name) AS score
-FROM read_parquet('s3://bucket-name/data/employees/*.parquet') e
-CROSS JOIN (SELECT *
-FROM read_json('chemin/vers/logs/*.json')
-WHERE timestamp_return IS NULL
-  AND document_type = '???') as n
-WHERE score > 0.8
-ORDER BY score DESC;
+-- Get borrower's modified ids
+with identities as (
+  select
+    'J. Nadal' as borrower_name
+  union all
+  select
+    'P. Farey' as borrower_name
+  union all
+  select
+    'Jeremy Nadal' as borrower_name
+  union all
+  select
+    'Jeremy N' as borrower_name
+)
+
+, employees as (
+  select
+    'Jérémy Nadal' as employee_name
+  union
+  select
+    'Pablo Farey' as employee_name
+  
+)
+
+, similar_employees as (
+  select
+    jaro_winkler_similarity(i.borrower_name, e.employee_name) AS score
+    , i.borrower_name
+    , e.employee_name
+  from
+    employees as e
+  cross join
+    identities as i
+  where
+    score > 0.8
+)
+
+select
+  distinct
+  *
+from
+  similar_employees
 ```
 
-### Indice 3 — Fouiller les métadonnées
+### Indice 4 — Fouiller les métadonnées
 
 Chaque table a un champ `metadata` JSON. Cherchez dans plusieurs tables — les lignes de l'employé suspect sont intéressantes.
