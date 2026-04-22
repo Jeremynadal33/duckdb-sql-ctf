@@ -142,3 +142,79 @@ resource "aws_lambda_permission" "allow_apigw_hint_event" {
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.pseudo.execution_arn}/*/*"
 }
+
+# ── Compactor Lambda (triggered by new event parquets) ──
+
+resource "aws_cloudwatch_log_group" "compactor" {
+  name              = "/aws/lambda/${var.bucket_name}-compactor"
+  retention_in_days = 14
+
+  tags = { Name = "${var.bucket_name}-compactor" }
+}
+
+resource "aws_lambda_function" "compactor" {
+  function_name = "${var.bucket_name}-compactor"
+  package_type  = "Image"
+  image_uri     = "${aws_ecr_repository.answer_checker.repository_url}:${local.answer_checker_hash}"
+  role          = aws_iam_role.lambda_compactor.arn
+  timeout       = 60
+  memory_size   = 1024
+
+  # Serialize compactor runs: concurrent invocations could race and publish a
+  # stale snapshot if a late writer lands last. Idempotent + eventually
+  # consistent: throttled S3 events retry, and any missed compaction converges
+  # on the next event.
+  reserved_concurrent_executions = 1
+
+  image_config {
+    command = ["answer_checker.compactor.compactor_handler"]
+  }
+
+  environment {
+    variables = {
+      BUCKET_NAME = var.bucket_name
+    }
+  }
+
+  architectures = ["arm64"]
+
+  depends_on = [
+    null_resource.answer_checker_build,
+    aws_cloudwatch_log_group.compactor,
+  ]
+
+  tags = { Name = "${var.bucket_name}-compactor" }
+}
+
+resource "aws_lambda_permission" "allow_s3_compactor" {
+  statement_id  = "AllowS3InvokeCompactor"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.compactor.function_name
+  principal     = "s3.amazonaws.com"
+  source_arn    = aws_s3_bucket.ctf.arn
+}
+
+# Safety net: even if every S3-triggered run is throttled or fails, the
+# snapshot catches up within 2 minutes.
+resource "aws_cloudwatch_event_rule" "compactor_schedule" {
+  name                = "${var.bucket_name}-compactor-schedule"
+  description         = "Fallback trigger for the leaderboard compactor"
+  schedule_expression = "rate(2 minutes)"
+
+  tags = { Name = "${var.bucket_name}-compactor-schedule" }
+}
+
+# TODO: Uncomment for actual presentation !!!! 
+# resource "aws_cloudwatch_event_target" "compactor" {
+#   rule      = aws_cloudwatch_event_rule.compactor_schedule.name
+#   target_id = "compactor"
+#   arn       = aws_lambda_function.compactor.arn
+# }
+
+resource "aws_lambda_permission" "allow_events_compactor" {
+  statement_id  = "AllowEventBridgeInvokeCompactor"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.compactor.function_name
+  principal     = "events.amazonaws.com"
+  source_arn    = aws_cloudwatch_event_rule.compactor_schedule.arn
+}

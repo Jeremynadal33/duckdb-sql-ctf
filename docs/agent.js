@@ -1,8 +1,8 @@
 /* ── Agent pseudo — partagé sur toutes les pages ── */
 
 const STORAGE_KEY = 'ctf_agent';
-const API_URL = 'https://hn4qoatkok.execute-api.eu-west-1.amazonaws.com/';
 const ADMIN_PSEUDO = 'adminpj';
+const API_URL = 'https://nhlsi5phj1.execute-api.eu-west-1.amazonaws.com/';
 
 function getPseudo()          { return localStorage.getItem(STORAGE_KEY); }
 function setPseudo(p)         { localStorage.setItem(STORAGE_KEY, p); }

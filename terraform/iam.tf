@@ -253,3 +253,80 @@ resource "aws_iam_role_policy_attachment" "lambda_hint_event_logs" {
   role       = aws_iam_role.lambda_hint_event.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
+
+# ──────────────────────────────────────────────
+# Lambda Compactor
+# ──────────────────────────────────────────────
+
+resource "aws_iam_role" "lambda_compactor" {
+  name = "${var.bucket_name}-lambda-compactor"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect    = "Allow"
+        Principal = { Service = "lambda.amazonaws.com" }
+        Action    = "sts:AssumeRole"
+      }
+    ]
+  })
+
+  tags = { Name = "${var.bucket_name}-lambda-compactor" }
+}
+
+resource "aws_iam_policy" "lambda_compactor_s3" {
+  name        = "${var.bucket_name}-lambda-compactor-s3"
+  description = "S3 access for the leaderboard compactor Lambda"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "ListCtfEvents"
+        Effect   = "Allow"
+        Action   = "s3:ListBucket"
+        Resource = aws_s3_bucket.ctf.arn
+        Condition = {
+          StringLike = {
+            "s3:prefix" = ["leaderboard/ctf-events/*"]
+          }
+        }
+      },
+      {
+        Sid      = "ReadCtfEvents"
+        Effect   = "Allow"
+        Action   = "s3:GetObject"
+        Resource = "${aws_s3_bucket.ctf.arn}/leaderboard/ctf-events/*"
+      },
+      {
+        Sid      = "WriteSnapshot"
+        Effect   = "Allow"
+        Action   = "s3:PutObject"
+        Resource = "${aws_s3_bucket.ctf.arn}/leaderboard/snapshot.parquet"
+      },
+      {
+        Sid    = "ManageTmpSnapshot"
+        Effect = "Allow"
+        Action = [
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:DeleteObject",
+        ]
+        Resource = "${aws_s3_bucket.ctf.arn}/leaderboard/snapshot.tmp.*.parquet"
+      }
+    ]
+  })
+
+  tags = { Name = "${var.bucket_name}-lambda-compactor-s3" }
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_compactor_s3" {
+  role       = aws_iam_role.lambda_compactor.name
+  policy_arn = aws_iam_policy.lambda_compactor_s3.arn
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_compactor_logs" {
+  role       = aws_iam_role.lambda_compactor.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
