@@ -50,10 +50,10 @@ WITH req AS (
     SELECT http_get(
         'https://nominatim.openstreetmap.org/reverse',
         headers => MAP { 'User-Agent': 'DuckDB-CTF/1.0', 'Accept': 'application/json' },
-        params  => MAP { 'format': 'geocodejson', 'lat': '48.879', 'lon': '2.283' }
+        params  => MAP { 'format': 'geocodejson', 'lat': '35.6764', 'lon': '139.6500' }
     ) AS response
 )
-SELECT json_extract_string(response->>'body', '$.address.city') AS city FROM req;
+SELECT response, json_extract_string(response->>'body', '$') AS city FROM req;
 ```
 
 ### Indice 5 — Chercher des informations sur la ville
