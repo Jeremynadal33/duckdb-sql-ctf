@@ -37,11 +37,11 @@ resource "aws_s3_bucket_policy" "public_results" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid       = "PublicReadCtfEvents"
+        Sid       = "PublicReadLeaderboardSnapshot"
         Effect    = "Allow"
         Principal = "*"
         Action    = "s3:GetObject"
-        Resource  = "${aws_s3_bucket.ctf.arn}/leaderboard/ctf-events/*"
+        Resource  = "${aws_s3_bucket.ctf.arn}/leaderboard/snapshot.parquet"
       },
       {
         Sid       = "PublicReadLibraryLogs"
@@ -56,18 +56,6 @@ resource "aws_s3_bucket_policy" "public_results" {
         Principal = "*"
         Action    = "s3:GetObject"
         Resource  = "${aws_s3_bucket.ctf.arn}/data/network.duckdb"
-      },
-      {
-        Sid       = "PublicListCtfEvents"
-        Effect    = "Allow"
-        Principal = "*"
-        Action    = "s3:ListBucket"
-        Resource  = aws_s3_bucket.ctf.arn
-        Condition = {
-          StringLike = {
-            "s3:prefix" = ["leaderboard/ctf-events/*"]
-          }
-        }
       }
     ]
   })
@@ -112,7 +100,7 @@ resource "aws_s3_object" "answer_scenario_7" {
   content = local.flag_scenario7
 }
 
-resource "aws_s3_bucket_notification" "user_inputs" {
+resource "aws_s3_bucket_notification" "ctf" {
   bucket = aws_s3_bucket.ctf.id
 
   lambda_function {
@@ -122,5 +110,15 @@ resource "aws_s3_bucket_notification" "user_inputs" {
     filter_suffix       = ".parquet"
   }
 
-  depends_on = [aws_lambda_permission.allow_s3]
+  lambda_function {
+    lambda_function_arn = aws_lambda_function.compactor.arn
+    events              = ["s3:ObjectCreated:*"]
+    filter_prefix       = "leaderboard/ctf-events/"
+    filter_suffix       = ".parquet"
+  }
+
+  depends_on = [
+    aws_lambda_permission.allow_s3,
+    aws_lambda_permission.allow_s3_compactor,
+  ]
 }

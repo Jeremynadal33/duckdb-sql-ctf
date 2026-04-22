@@ -2,7 +2,8 @@ import json
 
 import duckdb
 
-from answer_checker.event_writer import write_event
+from answer_checker.event_writer import EVENT_CACHE_CONTROL, write_event
+from tests.conftest import BUCKET_NAME
 
 
 class TestWriteEvent:
@@ -57,6 +58,22 @@ class TestWriteEvent:
             "SELECT timestamp FROM read_parquet(?)", [output_path]
         ).fetchone()
         assert row[0] is not None
+
+    def test_uploads_to_s3_with_cache_control(self, s3_client, duckdb_connection):
+        result = write_event(
+            action="REGISTRATION",
+            value={"pseudo": "dave"},
+            bucket=BUCKET_NAME,
+            region="eu-west-1",
+            connection=duckdb_connection,
+        )
+        assert result.startswith(f"s3://{BUCKET_NAME}/leaderboard/ctf-events/REGISTRATION_")
+        assert result.endswith(".parquet")
+
+        key = result.removeprefix(f"s3://{BUCKET_NAME}/")
+        head = s3_client.head_object(Bucket=BUCKET_NAME, Key=key)
+        assert head["CacheControl"] == EVENT_CACHE_CONTROL
+        assert head["ContentType"] == "application/vnd.apache.parquet"
 
     def test_rejection_event(self, tmp_path, duckdb_connection):
         output_path = str(tmp_path / "event.parquet")

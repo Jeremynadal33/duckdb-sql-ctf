@@ -3,10 +3,12 @@ import os
 import uuid
 from datetime import datetime, timezone
 
+import boto3
 import duckdb
 
 EXTENSION_DIR = os.environ.get("DUCKDB_EXTENSION_DIR")
 EVENTS_PREFIX = "leaderboard/ctf-events"
+EVENT_CACHE_CONTROL = "public, max-age=31536000, immutable"
 
 
 def write_event(
@@ -24,14 +26,28 @@ def write_event(
     con = connection or duckdb.connect(config=config)
     try:
         ts = datetime.now(timezone.utc)
-        if output_path is None:
-            con.execute("LOAD httpfs")
-            con.execute("SET s3_region = ?", [region])
-            ts_str = ts.strftime("%Y%m%dT%H%M%S")
-            uid = uuid.uuid4().hex[:8]
-            output_path = f"s3://{bucket}/{EVENTS_PREFIX}/{action}_{ts_str}_{uid}.parquet"
+        ts_str = ts.strftime("%Y%m%dT%H%M%S")
+        uid = uuid.uuid4().hex[:8]
 
-        value_json = json.dumps(value)
+        if output_path is not None:
+            # Test/override path: write directly without going through S3.
+            con.execute(
+                f"""
+                COPY (
+                    SELECT
+                        ? AS action,
+                        ? AS value,
+                        ?::TIMESTAMP AS timestamp
+                ) TO '{output_path}' (FORMAT PARQUET)
+                """,
+                [action, json.dumps(value), ts.isoformat()],
+            )
+            return output_path
+
+        # Production path: COPY locally, then upload to S3 with Cache-Control so
+        # browsers can cache these immutable files indefinitely.
+        key = f"{EVENTS_PREFIX}/{action}_{ts_str}_{uid}.parquet"
+        local_path = f"/tmp/{action}_{ts_str}_{uid}.parquet"
         con.execute(
             f"""
             COPY (
@@ -39,11 +55,26 @@ def write_event(
                     ? AS action,
                     ? AS value,
                     ?::TIMESTAMP AS timestamp
-            ) TO '{output_path}' (FORMAT PARQUET)
+            ) TO '{local_path}' (FORMAT PARQUET)
             """,
-            [action, value_json, ts.isoformat()],
+            [action, json.dumps(value), ts.isoformat()],
         )
-        return output_path
+        try:
+            boto3.client("s3", region_name=region).upload_file(
+                local_path,
+                bucket,
+                key,
+                ExtraArgs={
+                    "CacheControl": EVENT_CACHE_CONTROL,
+                    "ContentType": "application/vnd.apache.parquet",
+                },
+            )
+        finally:
+            try:
+                os.remove(local_path)
+            except OSError:
+                pass
+        return f"s3://{bucket}/{key}"
     finally:
         if connection is None:
             con.close()
