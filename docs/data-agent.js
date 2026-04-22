@@ -72,6 +72,18 @@ function _getCacheAge() {
 async function _queryAll(conn, url) {
   let rows = [], events = [], playerCount = 0;
 
+  // Rows carry both scoring modes precomputed:
+  //   rank_solve / pts_solve  = solve-order rank (1st finisher = #1, 100→50 pts)
+  //   rank_time  / pts_time   = time-based rank (fastest time_spent = #1,
+  //                             linear 100→50 pts over a 10-min window,
+  //                             50 pts flat after)
+  // time_spent on scenario N = solved_at(N) − solved_at(N−1); for scenario 1
+  // the prev anchor is the user's own REGISTRATION timestamp.
+  // Hint malus (applied to both pts_solve and pts_time, floor 0):
+  //   Δ = hint_open_time - prev_time (time elapsed in solve window)
+  //   Δ <  3 min → -15,  3 ≤ Δ <  6 min → -10,
+  //   6 ≤ Δ < 15 min →  -5,  Δ ≥ 15 min → 0
+  //   Hints opened after solved_at are ignored.
   try {
     const r = await conn.query(`
       WITH ev AS (
@@ -81,20 +93,108 @@ async function _queryAll(conn, url) {
         FROM read_parquet('${url}')
         WHERE action = 'FLAG_SUBMISSION_SUCCESS'
       ),
-      dedup AS (SELECT pseudo, scenario, MIN(solved_at) AS solved_at FROM ev GROUP BY pseudo, scenario),
-      ranked AS (
-        SELECT pseudo, scenario, solved_at,
-               ROW_NUMBER() OVER (PARTITION BY scenario ORDER BY solved_at ASC) AS rank
-        FROM dedup
+      dedup AS (
+        SELECT pseudo, scenario, MIN(solved_at) AS solved_at
+        FROM ev GROUP BY pseudo, scenario
+      ),
+      reg AS (
+        SELECT json_extract_string(value, '$.pseudo') AS pseudo,
+               MIN(timestamp) AS registered_at
+        FROM read_parquet('${url}')
+        WHERE action = 'REGISTRATION'
+        GROUP BY pseudo
+      ),
+      with_prev AS (
+        SELECT d.pseudo, d.scenario, d.solved_at,
+               CASE WHEN d.scenario = 1 THEN r.registered_at
+                    ELSE LAG(d.solved_at) OVER (PARTITION BY d.pseudo ORDER BY d.scenario)
+               END AS prev_time
+        FROM dedup d LEFT JOIN reg r USING (pseudo)
+      ),
+      with_time AS (
+        SELECT pseudo, scenario, solved_at, prev_time,
+               CASE WHEN prev_time IS NULL THEN NULL
+                    ELSE GREATEST(0, EPOCH_MS(solved_at) - EPOCH_MS(prev_time))
+               END AS time_spent_ms
+        FROM with_prev
+      ),
+      hints_raw AS (
+        SELECT json_extract_string(value, '$.pseudo') AS pseudo,
+               CAST(json_extract_string(value, '$.scenario') AS INTEGER) AS scenario,
+               json_extract_string(value, '$.hint_title') AS hint_title,
+               MIN(timestamp) AS hint_at
+        FROM read_parquet('${url}')
+        WHERE action = 'HINT_EXPANDED'
+        GROUP BY pseudo, scenario, hint_title
+      ),
+      hints_scoped AS (
+        SELECT w.pseudo, w.scenario, h.hint_title, h.hint_at,
+          CASE
+            WHEN EPOCH_MS(h.hint_at) - EPOCH_MS(w.prev_time) < 180000  THEN 15
+            WHEN EPOCH_MS(h.hint_at) - EPOCH_MS(w.prev_time) < 360000  THEN 10
+            WHEN EPOCH_MS(h.hint_at) - EPOCH_MS(w.prev_time) < 900000  THEN 5
+            ELSE 0
+          END AS malus
+        FROM with_time w
+        INNER JOIN hints_raw h
+          ON h.pseudo = w.pseudo AND h.scenario = w.scenario
+         AND h.hint_at < w.solved_at
+      ),
+      hint_malus AS (
+        SELECT pseudo, scenario,
+          COUNT(*) AS hints_used,
+          CAST(SUM(malus) AS INTEGER) AS malus_pts,
+          to_json(array_agg({title: hint_title, malus: malus} ORDER BY hint_at)) AS hints_detail
+        FROM hints_scoped
+        GROUP BY pseudo, scenario
+      ),
+      scored AS (
+        SELECT pseudo, scenario, solved_at, time_spent_ms,
+          ROW_NUMBER() OVER (PARTITION BY scenario ORDER BY solved_at ASC) AS rank_solve,
+          ROW_NUMBER() OVER (PARTITION BY scenario
+                             ORDER BY time_spent_ms ASC NULLS LAST, solved_at ASC) AS rank_time,
+          MIN(time_spent_ms) OVER (PARTITION BY scenario) AS fastest_ms
+        FROM with_time
+      ),
+      with_pts_raw AS (
+        SELECT s.*,
+          GREATEST(50, 100 - (s.rank_solve - 1) * 10) AS pts_solve_raw,
+          CASE
+            WHEN s.time_spent_ms IS NULL THEN 0
+            WHEN s.time_spent_ms <= s.fastest_ms THEN 100
+            WHEN s.time_spent_ms - s.fastest_ms >= 600000 THEN 50
+            ELSE CAST(ROUND(100 - (s.time_spent_ms - s.fastest_ms) / 600000.0 * 50) AS INTEGER)
+          END AS pts_time_raw
+        FROM scored s
       )
-      SELECT pseudo, scenario, rank, solved_at FROM ranked ORDER BY pseudo, scenario
+      SELECT p.pseudo, p.scenario, p.solved_at, p.time_spent_ms,
+             p.rank_solve, p.rank_time,
+             CAST(COALESCE(m.hints_used, 0) AS INTEGER) AS hints_used,
+             CAST(COALESCE(m.malus_pts, 0) AS INTEGER) AS hint_malus,
+             COALESCE(CAST(m.hints_detail AS VARCHAR), '[]') AS hints_detail,
+             GREATEST(0, p.pts_solve_raw - COALESCE(m.malus_pts, 0)) AS pts_solve,
+             GREATEST(0, p.pts_time_raw  - COALESCE(m.malus_pts, 0)) AS pts_time
+      FROM with_pts_raw p
+      LEFT JOIN hint_malus m USING (pseudo, scenario)
+      ORDER BY pseudo, scenario
     `);
-    rows = r.toArray().map(row => ({
-      pseudo:    row.pseudo,
-      scenario:  Number(row.scenario),
-      rank:      Number(row.rank),
-      solved_at: row.solved_at,
-    }));
+    rows = r.toArray().map(row => {
+      let hintsDetail = [];
+      try { hintsDetail = JSON.parse(row.hints_detail ?? '[]'); } catch {}
+      return {
+        pseudo:        row.pseudo,
+        scenario:      Number(row.scenario),
+        solved_at:     row.solved_at,
+        time_spent_ms: row.time_spent_ms == null ? null : Number(row.time_spent_ms),
+        rank_solve:    Number(row.rank_solve),
+        rank_time:     Number(row.rank_time),
+        pts_solve:     Number(row.pts_solve),
+        pts_time:      Number(row.pts_time),
+        hints_used:    Number(row.hints_used),
+        hint_malus:    Number(row.hint_malus),
+        hints_detail:  hintsDetail,
+      };
+    });
   } catch (e) { console.warn('[data-agent] rows query error', e); }
 
   try {
@@ -142,10 +242,28 @@ async function _queryAll(conn, url) {
   return { rows, events, playerCount };
 }
 
+// If the cached payload was written by an older code version (missing a
+// field we now rely on), ignore the stored fingerprint so the leader runs a
+// fresh query even when snapshot.parquet's ETag hasn't changed.
+function _cachedPayloadLooksStale() {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return false;
+    const parsed = JSON.parse(raw);
+    if (!parsed?.rows?.length) return false;
+    return parsed.rows[0].hints_detail === undefined;
+  } catch { return false; }
+}
+
 async function _runLeader() {
   console.log('[data-agent] elected leader tab');
   const db = await _initDuckDB();
-  let _lastFingerprint = localStorage.getItem(FINGERPRINT_KEY) ?? '';
+  let _lastFingerprint = _cachedPayloadLooksStale()
+    ? ''
+    : (localStorage.getItem(FINGERPRINT_KEY) ?? '');
+  if (_cachedPayloadLooksStale()) {
+    console.log('[data-agent] cached payload lacks new fields, forcing re-query');
+  }
   console.log(`[data-agent] restored fingerprint from localStorage: ${_lastFingerprint || '(none)'}`);
 
   async function poll() {

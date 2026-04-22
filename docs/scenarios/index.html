@@ -95,11 +95,48 @@
     <div class="helper-tabs">
       <button class="helper-tab active" data-tab="submit">SOUMETTRE UN FLAG</button>
       <button class="helper-tab" data-tab="s3">EXPLORER S3</button>
+      <button class="helper-tab" data-tab="scoring">SCORING</button>
     </div>
 
     <div class="helper-pane" id="helper-s3">
       <p class="submit-modal-desc">Listez tous les fichiers disponibles sur le bucket S3 :</p>
       <pre><code>SELECT * FROM glob('s3://duckdb-sql-ctf/**');</code></pre>
+    </div>
+
+    <div class="helper-pane" id="helper-scoring">
+      <p class="submit-modal-desc">Deux modes de scoring, un malus commun lié aux hints. Le leaderboard propose un onglet pour basculer entre les deux.</p>
+
+      <div class="scoring-block">
+        <div class="scoring-block-title">Mode « Rang »</div>
+        <p>Ordre d'arrivée par scénario.</p>
+        <ul>
+          <li>1<sup>er</sup> → <strong>100 pts</strong></li>
+          <li>−10 pts par rang (2<sup>e</sup> → 90, 3<sup>e</sup> → 80, ...)</li>
+          <li>Plancher : <strong>50 pts</strong> (10<sup>e</sup> et au-delà)</li>
+        </ul>
+      </div>
+
+      <div class="scoring-block">
+        <div class="scoring-block-title">Mode « Vitesse »</div>
+        <p>Temps passé : <code>Δ = solved_at(N) − solved_at(N−1)</code>. Pour le scénario 1, l'ancre est l'heure de ton inscription.</p>
+        <ul>
+          <li>Plus rapide du scénario → <strong>100 pts</strong></li>
+          <li>Décroissance linéaire sur <strong>10 min</strong></li>
+          <li>Au-delà de +10 min vs le plus rapide → <strong>50 pts</strong></li>
+        </ul>
+      </div>
+
+      <div class="scoring-block">
+        <div class="scoring-block-title">Malus « Hints »</div>
+        <p>Appliqué <strong>sur les deux modes</strong>, en fonction de <code>Δ<sub>hint</sub> = hint_ouvert − début_du_solve</code> :</p>
+        <ul>
+          <li>Δ &lt; 3 min → <strong>−15 pts</strong></li>
+          <li>Δ &lt; 6 min → <strong>−10 pts</strong></li>
+          <li>Δ &lt; 15 min → <strong>−5 pts</strong></li>
+          <li>Δ ≥ 15 min → <strong>0 pts</strong> (gratuit)</li>
+        </ul>
+        <p>Hints ouverts <em>après</em> la résolution : ignorés. Plancher final par scénario : <strong>0 pts</strong>.</p>
+      </div>
     </div>
 
     <div class="helper-pane active" id="helper-submit">
