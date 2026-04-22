@@ -624,6 +624,42 @@ details p code { color: var(--c-blue); }
   line-height: 1.7;
 }
 
+.scoring-block {
+  border: 1px solid var(--c-border);
+  border-left: 3px solid var(--c-accent);
+  background: rgba(0, 0, 0, 0.25);
+  padding: 0.9rem 1.1rem;
+  border-radius: 4px;
+}
+.scoring-block-title {
+  color: var(--c-accent);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+.scoring-block p {
+  color: var(--c-soft);
+  font-size: 0.85rem;
+  line-height: 1.55;
+  margin: 0.25rem 0;
+}
+.scoring-block ul {
+  margin: 0.4rem 0 0.2rem 1rem;
+  padding: 0;
+  color: var(--c-soft);
+  font-size: 0.85rem;
+  line-height: 1.8;
+}
+.scoring-block code {
+  color: var(--c-accent);
+  background: rgba(0, 0, 0, 0.35);
+  padding: 0.05em 0.35em;
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+
 /* ── LEADERBOARD LAYOUT ────────────────────────────────────────── */
 
 .lb-layout {
@@ -780,9 +816,59 @@ tr:hover { background: var(--c-surface); }
 .rank-1  { color: #f0c000; }
 .rank-2  { color: #a0b0c8; }
 .rank-3  { color: #cd7f32; }
-.solved  { color: var(--c-green); font-weight: 600; }
+.solved  { color: var(--c-green); font-weight: 600; position: relative; cursor: help; }
 .unsolved{ color: var(--c-muted); }
 .score   { font-size: 0.85rem; font-weight: 700; }
+
+/* Custom cell tooltip (solved cells on leaderboard) */
+.cell-tip {
+  visibility: hidden;
+  opacity: 0;
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 6px);
+  transform: translateX(-50%);
+  background: #0f172a;
+  border: 1px solid #1e2d47;
+  border-radius: 8px;
+  padding: 0.6rem 0.75rem;
+  min-width: 200px;
+  max-width: 320px;
+  text-align: left;
+  color: var(--c-text);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.72rem;
+  font-weight: 500;
+  line-height: 1.5;
+  white-space: normal;
+  z-index: 20;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
+  transition: opacity 0.12s, visibility 0.12s;
+  pointer-events: none;
+}
+.solved:hover .cell-tip { visibility: visible; opacity: 1; }
+
+.cell-tip-line { margin-bottom: 0.25rem; }
+.cell-tip-label {
+  color: var(--c-muted);
+  text-transform: uppercase;
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  margin-right: 0.4rem;
+}
+.cell-tip-hints {
+  list-style: none;
+  margin: 0.15rem 0 0 0;
+  padding: 0;
+}
+.cell-tip-hints li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.1rem 0;
+}
+.cell-tip-hint-title { color: var(--c-soft); overflow: hidden; text-overflow: ellipsis; }
+.cell-tip-hint-malus { color: var(--c-accent); font-weight: 600; white-space: nowrap; }
 
 /* ── MAP ───────────────────────────────────────────────────────── */
 

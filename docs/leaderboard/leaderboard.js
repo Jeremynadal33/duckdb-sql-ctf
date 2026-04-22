@@ -1,9 +1,40 @@
 // === Configuration ===
 const CACHE_KEY = 'ctf_data_cache';
 
-// Scoring: 1st = 100, 2nd = 90, ..., 10th+ = 50
-function scoreForRank(rank) {
-  return Math.max(50, 100 - (rank - 1) * 10);
+// Rows arrive from data-agent.js with both scoring modes precomputed by DuckDB:
+//   rank_solve / pts_solve  = solve-order rank + rank-based points
+//   rank_time  / pts_time   = time-based rank + time-based points
+// pts_* already account for the hint malus; hints_used / hint_malus are
+// carried through for the cell tooltip.
+// This helper projects each row onto a uniform {rank, pts} shape for the
+// active tab so the renderers don't need to know about modes.
+function rowsForMode(mode, data) {
+  const rankKey = mode === 'time' ? 'rank_time'  : 'rank_solve';
+  const ptsKey  = mode === 'time' ? 'pts_time'   : 'pts_solve';
+  return data.rows.map(r => ({ ...r, rank: r[rankKey], pts: r[ptsKey] }));
+}
+
+function fmtDuration(ms) {
+  const s = Math.max(0, Math.round(ms / 1000));
+  const m = Math.floor(s / 60);
+  return m ? `${m}m${String(s % 60).padStart(2, '0')}s` : `${s}s`;
+}
+
+function buildCellTooltip(data) {
+  const lines = [];
+  if (data.time_spent_ms != null) {
+    lines.push(`<div class="cell-tip-line"><span class="cell-tip-label">Timer:</span> ${fmtDuration(data.time_spent_ms)}</div>`);
+  }
+  if (data.hints_detail?.length) {
+    lines.push(`<div class="cell-tip-line"><span class="cell-tip-label">Hints:</span></div>`);
+    const items = data.hints_detail.map(h => {
+      const malusTxt = h.malus > 0 ? `−${h.malus} pts` : `gratuit`;
+      return `<li><span class="cell-tip-hint-title">${escapeHtml(h.title)}</span><span class="cell-tip-hint-malus">${malusTxt}</span></li>`;
+    }).join('');
+    lines.push(`<ul class="cell-tip-hints">${items}</ul>`);
+  }
+  if (!lines.length) return '';
+  return `<div class="cell-tip">${lines.join('')}</div>`;
 }
 
 // === DOM helpers ===
@@ -24,10 +55,16 @@ function escapeHtml(text) {
 
 function computeScoreboard(rows) {
   const players = {};
-  for (const { pseudo, scenario, rank } of rows) {
+  for (const r of rows) {
+    const { pseudo, scenario, rank, pts, time_spent_ms, hints_used, hint_malus, hints_detail } = r;
     if (!players[pseudo]) players[pseudo] = { pseudo, totalScore: 0, scenarios: {} };
-    const pts = scoreForRank(rank);
-    players[pseudo].scenarios[scenario] = { rank, pts };
+    players[pseudo].scenarios[scenario] = {
+      rank, pts,
+      time_spent_ms,
+      hints_used,
+      hint_malus,
+      hints_detail: hints_detail ?? [],
+    };
     players[pseudo].totalScore += pts;
   }
   return Object.values(players).sort(
@@ -40,7 +77,7 @@ function renderPodium(scoreboard, rows, playerCount) {
     const card = document.getElementById(`podium-${place}`);
     if (!card) return;
     const player = scoreboard[i];
-    card.querySelector('.p-name').textContent  = player?.pseudo ?? '\u2014';
+    card.querySelector('.p-name').textContent  = player?.pseudo ?? '—';
     card.querySelector('.p-score').textContent = player ? `${player.totalScore} pts` : '0 pts';
   });
   const statPlayers = document.getElementById('stat-players');
@@ -52,12 +89,12 @@ function renderPodium(scoreboard, rows, playerCount) {
 function renderScoreboard(scoreboard, scenarios) {
   thead().innerHTML =
     `<th>Rang</th><th>Joueur</th><th>Score</th>` +
-    scenarios.map(s => `<th>Sc\u00e9nario ${s}</th>`).join('');
+    scenarios.map(s => `<th>Scénario ${s}</th>`).join('');
   tbody().innerHTML = '';
 
   if (scoreboard.length === 0) {
     const cols = 3 + scenarios.length;
-    tbody().innerHTML = `<tr><td colspan="${cols}" style="color:#64748b;padding:2rem">Aucun r\u00e9sultat pour l\u2019instant \u2014 soyez le premier\u00a0!</td></tr>`;
+    tbody().innerHTML = `<tr><td colspan="${cols}" style="color:#64748b;padding:2rem">Aucun résultat pour l’instant — soyez le premier !</td></tr>`;
     return;
   }
 
@@ -69,9 +106,11 @@ function renderScoreboard(scoreboard, scenarios) {
     cells += `<td class="score">${player.totalScore}</td>`;
     for (const s of scenarios) {
       const data = player.scenarios[s];
-      cells += data
-        ? `<td class="solved">#${data.rank} (${data.pts}pts)</td>`
-        : `<td class="unsolved">\u2014</td>`;
+      if (!data) {
+        cells += `<td class="unsolved">—</td>`;
+        continue;
+      }
+      cells += `<td class="solved">#${data.rank} (${data.pts}pts)${buildCellTooltip(data)}</td>`;
     }
     tr.innerHTML = cells;
     tbody().appendChild(tr);
@@ -82,7 +121,7 @@ function renderFeed(events) {
   const list = document.getElementById('feed-list');
   if (!list) return;
   if (!events?.length) {
-    list.innerHTML = `<div class="feed-empty">Aucune activit\u00e9 pour l'instant.</div>`;
+    list.innerHTML = `<div class="feed-empty">Aucune activité pour l'instant.</div>`;
     return;
   }
   list.innerHTML = events.map(ev => {
@@ -99,15 +138,15 @@ function renderFeed(events) {
       itemClass = 'feed-item-register';
     } else if (isHint) {
       tag = `<span class="feed-tag feed-tag-hint">HINT</span>`;
-      detail = `<span class="feed-pseudo">${escapeHtml(ev.pseudo ?? '?')}</span> \u2014 Sc\u00e9nario <strong>${escapeHtml(ev.scenario ?? '?')}</strong>${ev.hint_title ? `<div class="feed-reason">${escapeHtml(ev.hint_title)}</div>` : ''}`;
+      detail = `<span class="feed-pseudo">${escapeHtml(ev.pseudo ?? '?')}</span> — Scénario <strong>${escapeHtml(ev.scenario ?? '?')}</strong>${ev.hint_title ? `<div class="feed-reason">${escapeHtml(ev.hint_title)}</div>` : ''}`;
       itemClass = 'feed-item-hint';
     } else if (isSuccess) {
       tag = `<span class="feed-tag feed-tag-success">SUCCESS</span>`;
-      detail = `<span class="feed-pseudo">${escapeHtml(ev.pseudo ?? '?')}</span> \u2014 Sc\u00e9nario <strong>${escapeHtml(ev.scenario ?? '?')}</strong>`;
+      detail = `<span class="feed-pseudo">${escapeHtml(ev.pseudo ?? '?')}</span> — Scénario <strong>${escapeHtml(ev.scenario ?? '?')}</strong>`;
       itemClass = 'feed-item-success';
     } else {
       tag = `<span class="feed-tag feed-tag-rejected">REJECTED</span>`;
-      detail = `<span class="feed-pseudo">${escapeHtml(ev.pseudo ?? '?')}</span> \u2014 Sc\u00e9nario <strong>${escapeHtml(ev.scenario ?? '?')}</strong>${ev.reason ? `<div class="feed-reason">${escapeHtml(ev.reason)}</div>` : ''}`;
+      detail = `<span class="feed-pseudo">${escapeHtml(ev.pseudo ?? '?')}</span> — Scénario <strong>${escapeHtml(ev.scenario ?? '?')}</strong>${ev.reason ? `<div class="feed-reason">${escapeHtml(ev.reason)}</div>` : ''}`;
       itemClass = 'feed-item-rejected';
     }
     return `<div class="feed-item ${itemClass}">
@@ -127,9 +166,9 @@ const PLAYER_COLORS = [
 
 function computeTimeSeries(rows) {
   const events = {};
-  for (const { pseudo, rank, scenario, solved_at } of rows) {
+  for (const { pseudo, rank, scenario, solved_at, pts } of rows) {
     if (!events[pseudo]) events[pseudo] = [];
-    events[pseudo].push({ t: new Date(solved_at), pts: scoreForRank(rank), rank, scenario });
+    events[pseudo].push({ t: new Date(solved_at), pts, rank, scenario });
   }
   const series = {};
   for (const [pseudo, pts] of Object.entries(events)) {
@@ -212,7 +251,7 @@ function renderChart(rows) {
           callbacks: {
             label: (ctx) => {
               const { rank, scenario, pts } = ctx.raw;
-              return ` ${ctx.dataset.label} \u2014 Sc\u00e9nario ${scenario} \u00b7 #${rank} \u00b7 +${pts} pts \u2192 ${ctx.parsed.y} pts`;
+              return ` ${ctx.dataset.label} — Scénario ${scenario} · #${rank} · +${pts} pts → ${ctx.parsed.y} pts`;
             },
           },
         },
@@ -223,35 +262,68 @@ function renderChart(rows) {
 
 // === Render all ===
 
-function renderAll(rows, events, playerCount) {
-  const scenarios  = [...new Set(rows.map(r => r.scenario))].sort((a, b) => a - b);
-  const scoreboard = computeScoreboard(rows);
-  renderPodium(scoreboard, rows, playerCount);
+let currentMode = 'rank';
+let lastData = null;
+
+function renderAll(data) {
+  lastData = data;
+  const scored     = rowsForMode(currentMode, data);
+  const scenarios  = [...new Set(scored.map(r => r.scenario))].sort((a, b) => a - b);
+  const scoreboard = computeScoreboard(scored);
+  renderPodium(scoreboard, scored, data.playerCount);
   renderScoreboard(scoreboard, scenarios);
-  renderChart(rows);
-  renderFeed(events);
+  renderChart(scored);
+  renderFeed(data.events);
   const _u = updated();
-  if (_u) _u.textContent = `Mis \u00e0 jour : ${new Date().toLocaleTimeString()}`;
+  if (_u) _u.textContent = `Mis à jour : ${new Date().toLocaleTimeString()}`;
+}
+
+function normalizeData(raw) {
+  return {
+    rows: raw?.rows ?? [],
+    events: raw?.events ?? [],
+    playerCount: raw?.playerCount ?? 0,
+  };
+}
+
+function setupTabs() {
+  const bar = document.getElementById('score-mode-tabs');
+  if (!bar) return;
+  bar.addEventListener('click', (e) => {
+    const btn = e.target.closest('.helper-tab');
+    if (!btn || !bar.contains(btn)) return;
+    const mode = btn.dataset.mode;
+    if (!mode || mode === currentMode) return;
+    currentMode = mode;
+    bar.querySelectorAll('.helper-tab').forEach(b => {
+      const active = b.dataset.mode === currentMode;
+      b.classList.toggle('active', active);
+      b.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+    if (lastData) renderAll(lastData);
+  });
 }
 
 // === Main ===
 
 document.addEventListener('DOMContentLoaded', () => {
+  setupTabs();
+
   // Render from cache immediately if available
   const cached = (() => {
     try { return JSON.parse(localStorage.getItem(CACHE_KEY)); } catch { return null; }
   })();
 
   if (cached?.rows) {
-    renderAll(cached.rows, cached.events ?? [], cached.playerCount ?? 0);
+    renderAll(normalizeData(cached));
     setStatus('');
   } else {
-    setStatus('En attente des donn\u00e9es...');
+    setStatus('En attente des données...');
   }
 
   // Cas 1 : même onglet est le leader (CustomEvent direct)
   window.addEventListener('ctf:data-updated', ({ detail }) => {
-    renderAll(detail.rows, detail.events ?? [], detail.playerCount ?? 0);
+    renderAll(normalizeData(detail));
     setStatus('');
   });
 
@@ -259,8 +331,7 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('storage', (e) => {
     if (e.key !== CACHE_KEY) return;
     try {
-      const { rows, events, playerCount } = JSON.parse(e.newValue);
-      renderAll(rows, events ?? [], playerCount ?? 0);
+      renderAll(normalizeData(JSON.parse(e.newValue)));
       setStatus('');
     } catch {}
   });
