@@ -23,6 +23,9 @@
 * Lat/long to city : mettre nom de l'API a dispo + http_get
 * Indice lat/long : donne la reponse finale directement -> soit rendre random, soit supprimer (probleme de parsing)
 * Rappeler le nom du personnage une fois trouve
+* Modifier indice PG => utiliser secret !!
+* Gérer le pb de sessions limites
+
 
 ## UX / Frontend
 * Ajouter un logo canard sur l'onglet (favicon)
@@ -36,8 +39,7 @@
 * Lambda : preciser que le pseudo est case insensitive
 
 ## Anti-triche / Difficulte
-* Penalites sur les indices ou rendre les scenarios moins evidents
-* Mettre un timer sur l'ouverture des indices
+* Mettre un timer sur l'ouverture des indices ? 
 
 ## Bugs
 * Erreur sur le scenario Iceberg (critique)

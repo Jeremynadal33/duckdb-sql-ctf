@@ -69,7 +69,9 @@ const TYPE_LABELS = {
   suspect: 'Suspect',
 };
 
-// ── Lecture de la progression depuis le cache ─────────────────────
+// ── Lecture de la progression depuis l'état mémoire ───────────────
+
+let _lastRows = [];
 
 function getUnlockedScenarios() {
   const pseudo = localStorage.getItem('ctf_agent');
@@ -79,16 +81,11 @@ function getUnlockedScenarios() {
     LOCATIONS.forEach(loc => unlocked.add(loc.unlockAfter));
     return unlocked;
   }
-  try {
-    const raw = localStorage.getItem('ctf_data_cache');
-    if (!raw) return unlocked;
-    const { rows } = JSON.parse(raw);
-    for (const row of (rows ?? [])) {
-      if (row.pseudo === pseudo && row.scenario) {
-        unlocked.add(Number(row.scenario));
-      }
+  for (const row of _lastRows) {
+    if (row.pseudo === pseudo && row.scenario) {
+      unlocked.add(Number(row.scenario));
     }
-  } catch (_) {}
+  }
   return unlocked;
 }
 
@@ -180,10 +177,9 @@ function refresh() {
 // Lancer immédiatement (le script est chargé après le DOM avec src normal)
 refresh();
 
-// Mise à jour si un scénario est débloqué dans le même onglet
-window.addEventListener('ctf:data-updated', refresh);
-
-// Mise à jour cross-onglet
-window.addEventListener('storage', e => {
-  if (e.key === 'ctf_data_cache') refresh();
+// Mise à jour lorsque le leader (même onglet ou cross-onglet via BroadcastChannel)
+// publie un nouveau payload via data-agent.js
+window.addEventListener('ctf:data-updated', (e) => {
+  _lastRows = e.detail.rows ?? [];
+  refresh();
 });

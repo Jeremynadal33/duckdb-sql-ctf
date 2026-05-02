@@ -1,6 +1,3 @@
-// === Configuration ===
-const CACHE_KEY = 'ctf_data_cache';
-
 // Rows arrive from data-agent.js with both scoring modes precomputed by DuckDB:
 //   rank_solve / pts_solve  = solve-order rank + rank-based points
 //   rank_time  / pts_time   = time-based rank + time-based points
@@ -308,31 +305,10 @@ function setupTabs() {
 
 document.addEventListener('DOMContentLoaded', () => {
   setupTabs();
+  setStatus('En attente des données...');
 
-  // Render from cache immediately if available
-  const cached = (() => {
-    try { return JSON.parse(localStorage.getItem(CACHE_KEY)); } catch { return null; }
-  })();
-
-  if (cached?.rows) {
-    renderAll(normalizeData(cached));
-    setStatus('');
-  } else {
-    setStatus('En attente des données...');
-  }
-
-  // Cas 1 : même onglet est le leader (CustomEvent direct)
   window.addEventListener('ctf:data-updated', ({ detail }) => {
     renderAll(normalizeData(detail));
     setStatus('');
-  });
-
-  // Cas 2 : un autre onglet est le leader (storage event cross-tab)
-  window.addEventListener('storage', (e) => {
-    if (e.key !== CACHE_KEY) return;
-    try {
-      renderAll(normalizeData(JSON.parse(e.newValue)));
-      setStatus('');
-    } catch {}
   });
 });

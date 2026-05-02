@@ -78,4 +78,4 @@ from
 
 ### Indice 4 — Fouiller les métadonnées
 
-Chaque table a un champ `metadata` JSON. Cherchez dans plusieurs tables — les lignes de l'employé suspect sont intéressantes.
+Chaque table a un champ `metadata` JSON... Des informations intéressantes peuvent s'y cacher.

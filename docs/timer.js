@@ -1,14 +1,5 @@
 (function () {
-  const CACHE_KEY = 'ctf_data_cache';
   let _countdownInterval = null;
-
-  function _getMissionEndTime() {
-    try {
-      const raw = localStorage.getItem(CACHE_KEY);
-      if (!raw) return null;
-      return JSON.parse(raw).missionEndTime ?? null;
-    } catch { return null; }
-  }
 
   function _formatCountdown(ms) {
     if (ms <= 0) return 'MISSION TERMINEE';
@@ -45,7 +36,7 @@
   }
 
   function _refresh(endTimeMs) {
-    _renderTimer(endTimeMs !== undefined ? endTimeMs : _getMissionEndTime());
+    _renderTimer(endTimeMs ?? null);
   }
 
   window.addEventListener('ctf:data-updated', (e) => {
@@ -138,7 +129,7 @@
     if (typeof isAdminPseudo === 'function' && pseudo && isAdminPseudo(pseudo)) {
       _injectAdminControls();
     }
-    _refresh(undefined);
+    _refresh(null);
   }
 
   if (document.readyState === 'loading') {

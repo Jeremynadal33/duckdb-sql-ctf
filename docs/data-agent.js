@@ -3,24 +3,23 @@
  *
  * Uses the Web Locks API to elect one "leader" tab.
  * The leader initialises DuckDB WASM, polls S3 every 15s,
- * writes results to localStorage and broadcasts via BroadcastChannel.
+ * and broadcasts the results via BroadcastChannel.
  * All tabs (including the leader) listen to the channel and dispatch
  * a custom DOM event `ctf:data-updated` so pages can react.
  *
  * Read strategy: snapshot-only. A scheduled + S3-triggered Lambda publishes a
- * compacted `snapshot.parquet` with a short-TTL Cache-Control. The frontend
- * fingerprints on the snapshot's ETag and re-queries only when it changes.
+ * compacted `snapshot.parquet` with a short-TTL Cache-Control. The leader
+ * fingerprints on the snapshot's ETag (in-memory only) and re-queries only
+ * when it changes.
  */
 
-const CTF_BC        = new BroadcastChannel('ctf-data');
-const CACHE_KEY     = 'ctf_data_cache';
-const FINGERPRINT_KEY = 'ctf_data_fingerprint';
-const POLL_MS       = 15_000;
+const CTF_BC       = new BroadcastChannel('ctf-data');
+const POLL_MS      = 15_000;
 const S3_BUCKET    = 'duckdb-sql-ctf';
 const S3_REGION    = 'eu-west-1';
 const S3_BASE_URL  = `https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com`;
-const SNAPSHOT_KEY  = 'leaderboard/snapshot.parquet';
-const SNAPSHOT_URL  = `${S3_BASE_URL}/${SNAPSHOT_KEY}`;
+const SNAPSHOT_KEY = 'leaderboard/snapshot.parquet';
+const SNAPSHOT_URL = `${S3_BASE_URL}/${SNAPSHOT_KEY}`;
 
 // ── Broadcast receiver (all tabs including leader) ───────────────
 CTF_BC.onmessage = ({ data }) => {
@@ -30,25 +29,12 @@ CTF_BC.onmessage = ({ data }) => {
 };
 
 function _applyUpdate(rows, events, playerCount, missionEndTime) {
-  try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify({ rows, events, playerCount, missionEndTime, ts: Date.now() }));
-  } catch {}
   window.dispatchEvent(new CustomEvent('ctf:data-updated', { detail: { rows, events, playerCount, missionEndTime } }));
 }
 
-// ── Bootstrap from cache (all tabs, instant render without waiting for leader) ──
-(function _bootstrapFromCache() {
-  try {
-    const raw = localStorage.getItem(CACHE_KEY);
-    if (!raw) return;
-    const { rows, events, playerCount, missionEndTime } = JSON.parse(raw);
-    window.dispatchEvent(new CustomEvent('ctf:data-updated', {
-      detail: { rows: rows ?? [], events: events ?? [], playerCount: playerCount ?? 0, missionEndTime: missionEndTime ?? null },
-    }));
-  } catch {}
-  // Ask the current leader to broadcast fresh data immediately
-  CTF_BC.postMessage({ type: 'ctf-wake' });
-})();
+// Ask the current leader (if any) to rebroadcast its last payload immediately,
+// so a freshly-opened tab renders without waiting for the next poll cycle.
+CTF_BC.postMessage({ type: 'ctf-wake' });
 
 // ── Leader logic ─────────────────────────────────────────────────
 
@@ -73,14 +59,6 @@ async function _headSnapshot() {
   if (resp.status === 404) return null;
   if (!resp.ok) throw new Error(`snapshot HEAD failed: ${resp.status}`);
   return { etag: resp.headers.get('ETag') ?? '' };
-}
-
-function _getCacheAge() {
-  try {
-    const raw = localStorage.getItem(CACHE_KEY);
-    if (!raw) return Infinity;
-    return Date.now() - (JSON.parse(raw).ts ?? 0);
-  } catch { return Infinity; }
 }
 
 async function _queryAll(conn, url) {
@@ -270,29 +248,11 @@ async function _queryAll(conn, url) {
   return { rows, events, playerCount, missionEndTime };
 }
 
-// If the cached payload was written by an older code version (missing a
-// field we now rely on), ignore the stored fingerprint so the leader runs a
-// fresh query even when snapshot.parquet's ETag hasn't changed.
-function _cachedPayloadLooksStale() {
-  try {
-    const raw = localStorage.getItem(CACHE_KEY);
-    if (!raw) return false;
-    const parsed = JSON.parse(raw);
-    if (!parsed?.rows?.length) return false;
-    return parsed.rows[0].hints_detail === undefined;
-  } catch { return false; }
-}
-
 async function _runLeader() {
   console.log('[data-agent] elected leader tab');
   const db = await _initDuckDB();
-  let _lastFingerprint = _cachedPayloadLooksStale()
-    ? ''
-    : (localStorage.getItem(FINGERPRINT_KEY) ?? '');
-  if (_cachedPayloadLooksStale()) {
-    console.log('[data-agent] cached payload lacks new fields, forcing re-query');
-  }
-  console.log(`[data-agent] restored fingerprint from localStorage: ${_lastFingerprint || '(none)'}`);
+  let _lastFingerprint = '';
+  let _lastPayload = null;
 
   async function poll() {
     try {
@@ -320,34 +280,26 @@ async function _runLeader() {
       await conn.close();
       console.log(`[data-agent] poll: query complete in ${Math.round(performance.now() - t0)}ms — ${rows.length} rows, ${events.length} events, ${playerCount} players`);
 
-      // Broadcast + update cache FIRST, then persist fingerprint. Advancing the
-      // fingerprint before the cache is written would let a mid-query tab close
-      // leave the next leader skipping the work with stale cached data.
       CTF_BC.postMessage({ type: 'ctf-update', rows, events, playerCount, missionEndTime });
       _applyUpdate(rows, events, playerCount, missionEndTime);
+      _lastPayload = { rows, events, playerCount, missionEndTime };
       _lastFingerprint = fingerprint;
-      localStorage.setItem(FINGERPRINT_KEY, fingerprint);
 
     } catch (e) {
       console.warn('[data-agent] poll error:', e);
     }
   }
 
-  // Respond to wake requests from newly-opened tabs
+  // Respond to wake requests from newly-opened tabs by rebroadcasting the last
+  // known payload (if any). The regular poll loop will pick up any S3 change
+  // within POLL_MS, so there's no need to trigger a fresh query here.
   CTF_BC.addEventListener('message', ({ data }) => {
-    if (data.type === 'ctf-wake') poll();
+    if (data.type !== 'ctf-wake' || !_lastPayload) return;
+    CTF_BC.postMessage({ type: 'ctf-update', ..._lastPayload });
   });
 
-  // If cache is fresh, delay first poll to avoid redundant fetch on page navigation
-  const cacheAge = _getCacheAge();
-  if (cacheAge < POLL_MS) {
-    const delay = POLL_MS - cacheAge;
-    console.log(`[data-agent] cache is fresh (age ${Math.round(cacheAge)}ms), delaying first poll by ${Math.round(delay)}ms`);
-    setTimeout(() => { poll(); setInterval(poll, POLL_MS); }, delay);
-  } else {
-    await poll();
-    setInterval(poll, POLL_MS);
-  }
+  await poll();
+  setInterval(poll, POLL_MS);
 
   // Hold the lock forever (until tab closes)
   await new Promise(() => {});

@@ -1,11 +1,7 @@
-// ── Mission state ─────────────────────────────────────────────────
+// ── Mission / unlock state (fed by ctf:data-updated) ──────────────
 
-function getMissionEndTime() {
-  try {
-    const raw = localStorage.getItem('ctf_data_cache');
-    return raw ? (JSON.parse(raw).missionEndTime ?? null) : null;
-  } catch { return null; }
-}
+let _lastRows = [];
+let _lastMissionEndTime = null;
 
 function _updateAdminActivateBtn(show) {
   const pseudo  = localStorage.getItem('ctf_agent');
@@ -30,27 +26,22 @@ function _updateAdminActivateBtn(show) {
   }
 }
 
-// ── Cache ─────────────────────────────────────────────────────────
+// ── Unlock state ──────────────────────────────────────────────────
 
-function getUnlockedFromCache(pseudo) {
+function getUnlockedFromState(pseudo) {
   const unlocked = new Set([1]);
   if (!pseudo) return unlocked;
   if (typeof isAdminPseudo === 'function' && isAdminPseudo(pseudo)) {
     for (let i = 1; i <= SCENARIO_FILES.length + 1; i++) unlocked.add(i);
     return unlocked;
   }
-  try {
-    const raw = localStorage.getItem('ctf_data_cache');
-    if (!raw) return unlocked;
-    const { rows } = JSON.parse(raw);
-    for (const row of (rows ?? [])) {
-      if (row.pseudo === pseudo) {
-        const sc = Number(row.scenario);
-        unlocked.add(sc);
-        unlocked.add(sc + 1);
-      }
+  for (const row of _lastRows) {
+    if (row.pseudo === pseudo) {
+      const sc = Number(row.scenario);
+      unlocked.add(sc);
+      unlocked.add(sc + 1);
     }
-  } catch {}
+  }
   return unlocked;
 }
 
@@ -160,14 +151,14 @@ let _loadedRaw = null; // cache the markdown files (no need to re-fetch)
 
 async function loadScenarios() {
   const pseudo          = localStorage.getItem('ctf_agent');
-  const unlocked        = getUnlockedFromCache(pseudo);
+  const unlocked        = getUnlockedFromState(pseudo);
   const chain           = document.getElementById('scenario-chain');
   const panelsContainer = document.getElementById('scenario-panels');
   const missionStamp    = document.querySelector('.mission-stamp');
   const missionCard     = document.querySelector('.mission-card');
 
   // ── Mission gate ─────────────────────────────────────────────────
-  const missionActive = getMissionEndTime() != null;
+  const missionActive = _lastMissionEndTime != null;
   if (!missionActive) {
     chain.innerHTML           = '';
     panelsContainer.innerHTML = '';
@@ -328,7 +319,7 @@ async function loadScenarios() {
 // ── Boot ─────────────────────────────────────────────────────────
 
 let _currentUnlocked  = new Set([1]);
-let _missionWasActive = getMissionEndTime() != null;
+let _missionWasActive = false;
 let _updating         = false;
 
 function setsEqual(a, b) {
@@ -342,8 +333,8 @@ async function checkAndUpdate() {
   _updating = true;
   try {
     const pseudo           = localStorage.getItem('ctf_agent');
-    const newUnlocked      = getUnlockedFromCache(pseudo);
-    const newMissionActive = getMissionEndTime() != null;
+    const newUnlocked      = getUnlockedFromState(pseudo);
+    const newMissionActive = _lastMissionEndTime != null;
     if (!setsEqual(newUnlocked, _currentUnlocked) || newMissionActive !== _missionWasActive) {
       _currentUnlocked  = newUnlocked;
       _missionWasActive = newMissionActive;
@@ -356,13 +347,10 @@ async function checkAndUpdate() {
 
 document.addEventListener('DOMContentLoaded', async () => {
   await loadScenarios();
-  _currentUnlocked = getUnlockedFromCache(localStorage.getItem('ctf_agent'));
 
-  // Cas 1 : même onglet est le leader (CustomEvent direct)
-  window.addEventListener('ctf:data-updated', checkAndUpdate);
-
-  // Cas 2 : un autre onglet est le leader (storage event cross-tab)
-  window.addEventListener('storage', (e) => {
-    if (e.key === 'ctf_data_cache') checkAndUpdate();
+  window.addEventListener('ctf:data-updated', (e) => {
+    _lastRows = e.detail.rows ?? [];
+    _lastMissionEndTime = e.detail.missionEndTime ?? null;
+    checkAndUpdate();
   });
 });

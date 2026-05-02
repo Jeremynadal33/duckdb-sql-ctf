@@ -110,3 +110,83 @@ WITH nominatim_request AS (
 ```sql
 select * from "postgres_db"."public"."city_information" where city_name = 'Bordeaux'
 ```
+
+# Scenario 4
+```sql
+SELECT * FROM iceberg_scan(                                                                                             
+      '/Users/jeremy.nadal/repos/perso/duckdb-sql-ctf/data_generator/output/iceberg_warehouse/badges/badges'
+      , allow_moved_paths = true
+      , snapshot_from_timestamp = TIMESTAMP '2026-03-23 00:00:00'
+  )
+  where badge_id = 'BADGE-0042'
+```
+
+# Scenario 5
+
+```sql
+ATTACH 's3://duckdb-sql-ctf/data/network.duckdb' AS social (READ_ONLY);
+```
+
+```sql
+with quackie as (
+select * from "social"."main"."persons"
+where
+  first_name || ' ' || last_name = 'Quackie Chan' 
+)
+
+, first_relations as (
+  select
+    *
+  from
+    "social"."main"."relationships"
+  where
+    person_id_1 = (select id from quackie)
+)
+, first_all_ids as (
+  select
+    person_id_1 as person_id
+  from
+    first_relations
+  union
+  select
+    person_id_2 as person_id
+  from
+    first_relations
+)
+, second_relations as (
+  select
+    *
+  from
+    "social"."main"."relationships"
+  where person_id_1 in (select person_id from first_all_ids)
+)
+, all_ids as (
+  select
+    person_id
+  from
+    first_all_ids
+  union
+  select
+    person_id_1 as person_id
+  from
+    second_relations
+  union
+  select
+    person_id_2 as person_id
+  from
+    second_relations
+)
+select
+  regexp_extract(
+  notes,
+  'FLAG\{[^}]+\}',
+  0
+) AS flag, *
+from
+  "social"."main"."persons"
+where
+ id in (select person_id from all_ids)
+
+```
+
+
