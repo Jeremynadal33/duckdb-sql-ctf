@@ -49,7 +49,7 @@ Comparez les dates des snapshots avec la date du décès mentionnée dans l'arti
 ```sql
 SELECT * FROM iceberg_scan(
     's3://bucket/data/badges/',
-    snapshot_from_timestamp => TIMESTAMP '2026-03-01',
+    snapshot_from_timestamp => TIMESTAMP '<date avant la mort de Quackie Chan>',
     allow_moved_paths = true
 )
 WHERE badge_id = 'BADGE-0042';

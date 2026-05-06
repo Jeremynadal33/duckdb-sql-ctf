@@ -27,13 +27,7 @@ ATTACH 'host=... port=5432 dbname=... user=... password=...'
     AS ctfdb (TYPE POSTGRES);
 ```
 
-### Indice 2 — Explorer les tables
-
-```sql
-SHOW ALL TABLES;
-```
-
-### Indice 3 — Jointures personne / adresse
+### Indice 2 — Jointures personne / adresse
 
 ```sql
 SELECT p.first_name, p.last_name, a.latitude, a.longitude
@@ -42,7 +36,7 @@ JOIN ctfdb.addresses a ON a.person_id = p.id
 WHERE a.is_current = true;
 ```
 
-### Indice 4 — Géocodage inversé avec Nominatim
+### Indice 3 — Géocodage inversé avec Nominatim
 
 ```sql
 INSTALL http_client FROM community; LOAD http_client;
@@ -56,6 +50,6 @@ WITH req AS (
 SELECT response, json_extract_string(response->>'body', '$') AS city FROM req;
 ```
 
-### Indice 5 — Chercher des informations sur la ville
+### Indice 4 — Chercher des informations sur la ville
 
 Une fois la ville identifiée, regardez le champ `metadata` de la table `city_information` — certaines entrées contiennent des informations utiles.

@@ -13,14 +13,17 @@ Grâce aux credentials (*AWS*) du scénario précédent, vous accédez aux archi
 ## Objectifs
 
 1. Configurer l'accès S3 dans DuckDB
-2. Explorer les fichiers bucket
+2. Le bucket contient un dossier `data` dans lequel se trouve un `README.md`. Allez y jeter un oeil !
 3. Retrouver l'identité via **fuzzy matching**
 
 ## Indices
 
-### Indice 1 — Lister les fichiers 
+### Indice 1 — Explorer le README.md
 ```sql
-SELECT * FROM glob('s3://duckdb-sql-ctf/**');
+COPY (
+    SELECT content
+    FROM read_text('s3://duckdb-sql-ctf/data/README.md')
+) TO '~/Desktop/fichier.md' (FORMAT CSV, HEADER false, QUOTE '', DELIMITER E'\x01');
 ```
 
 ### Indice 2 — Lire des fichiers Parquet depuis S3
