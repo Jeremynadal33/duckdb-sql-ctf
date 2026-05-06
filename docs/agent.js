@@ -2,7 +2,7 @@
 
 const STORAGE_KEY = 'ctf_agent';
 const ADMIN_PSEUDO = 'adminpj';
-const API_URL = 'https://nhlsi5phj1.execute-api.eu-west-1.amazonaws.com/';
+const API_URL = 'https://o5y5ax4hla.execute-api.eu-west-1.amazonaws.com/';
 
 function getPseudo()          { return localStorage.getItem(STORAGE_KEY); }
 function setPseudo(p)         { localStorage.setItem(STORAGE_KEY, p); }
