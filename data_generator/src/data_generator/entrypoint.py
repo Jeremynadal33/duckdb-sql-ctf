@@ -15,16 +15,15 @@ def logs(
         Path("output"), help="Output directory for zip file"
     ),
     upload: bool = typer.Option(True, help="Upload zip to S3 after generation"),
-    dev: bool = typer.Option(False, "--dev", help="Utiliser une config locale sans Terraform"),
 ) -> None:
     """Scenario 1: Generate 500 JSON log files in a zip archive."""
-    from data_generator.config import dev_config, load_config
+    from data_generator.config import load_config
     from data_generator.generators.scenario1_logs import generate_logs, upload_to_s3
 
-    config = dev_config() if dev else load_config()
+    config = load_config()
     path = generate_logs(config, output_dir)
     typer.echo(f"Generated: {path}")
-    if upload and not dev:
+    if upload:
         upload_to_s3(config, path)
         typer.echo("Uploaded to S3.")
 
@@ -53,16 +52,15 @@ def iceberg(
         Path("output"), help="Local output directory for Iceberg table"
     ),
     upload: bool = typer.Option(True, help="Upload to S3 after generation"),
-    dev: bool = typer.Option(False, "--dev", help="Utiliser une config locale sans Terraform"),
 ) -> None:
     """Scenario 4: Generate Iceberg badges table with time-travel snapshots."""
-    from data_generator.config import dev_config, load_config
+    from data_generator.config import load_config
     from data_generator.generators.scenario4_iceberg import generate_iceberg
 
-    config = dev_config() if dev else load_config()
-    table_path = generate_iceberg(config, output_dir, upload=upload and not dev)
+    config = load_config()
+    table_path = generate_iceberg(config, output_dir, upload=upload)
     typer.echo(f"Iceberg table: {table_path}")
-    if upload and not dev:
+    if upload:
         typer.echo("Uploaded to S3.")
 
 
@@ -72,16 +70,15 @@ def graph(
         Path("output"), help="Local output directory for the DuckDB file"
     ),
     upload: bool = typer.Option(True, help="Upload to S3 after generation"),
-    dev: bool = typer.Option(False, "--dev", help="Utiliser une config locale sans Terraform"),
 ) -> None:
     """Scenario 5: Generate network.duckdb (persons + relationships for DuckPGQ)."""
-    from data_generator.config import dev_config, load_config
+    from data_generator.config import load_config
     from data_generator.generators.scenario5_graph import generate_graph
 
-    config = dev_config() if dev else load_config()
-    db_path = generate_graph(config, output_dir, upload=upload and not dev)
+    config = load_config()
+    db_path = generate_graph(config, output_dir, upload=upload)
     typer.echo(f"DuckDB file: {db_path}")
-    if upload and not dev:
+    if upload:
         typer.echo("Uploaded to S3.")
 
 
@@ -131,36 +128,73 @@ def postgres(
     typer.echo("PostgreSQL tables populated.")
 
 
-@app.command(name="all")
-def all_scenarios(
+@app.command(name="solve-all")
+def solve_all(
+    output_dir: Path = typer.Option(Path("output"), help="Working directory"),
+    regenerate: bool = typer.Option(False, "--regenerate", help="Regenerate all data once before solving"),
+    upload: bool = typer.Option(False, "--upload", help="Upload after regenerating"),
+) -> None:
+    """Run every solutionator end-to-end and verify each scenario's flag.
+
+    Mirrors the player flow: scenario 1 reveals AWS credentials (used by 2/4/5),
+    scenario 2 reveals PostgreSQL credentials (used by 3/6). Each flag is parsed
+    and used to override the running config before the next scenario runs.
+
+    With ``--regenerate``, every scenario's data is regenerated once up front
+    (via generators.generate_all) and the solvers then read locally from
+    output_dir.
+    """
+    from data_generator.config import load_config
+    from data_generator.generators import generate_all
+    from data_generator.solutionators import (
+        scenario1_logs, scenario2_parquet, scenario3_postgres,
+        scenario4_iceberg, scenario5_graph, scenario6_geocode,
+    )
+    from data_generator.solutionators._common import parse_kv_flag
+
+    config = load_config()
+    if regenerate:
+        generate_all(config, output_dir, upload=upload)
+    common = dict(output_dir=output_dir, local=regenerate)
+
+    flag1 = scenario1_logs.solve(config=config, **common)
+    typer.echo(f"[scenario 1] Flag: {flag1}")
+    aws = parse_kv_flag(flag1)
+    config = config.model_copy(update={
+        "iam_access_key_id": aws["aws_access_key_id"],
+        "iam_secret_access_key": aws["aws_secret_access_key"],
+        "s3_bucket_name": aws["bucket"],
+    })
+    typer.echo(f"  → unlocked S3 access: bucket={aws['bucket']} key_id={aws['aws_access_key_id'][:10]}…")
+
+    flag2 = scenario2_parquet.solve(config=config, **common)
+    typer.echo(f"[scenario 2] Flag: {flag2}")
+    pg = parse_kv_flag(flag2)
+    config = config.model_copy(update={
+        "db_endpoint": f"{pg['pg_host']}:{pg['pg_port']}",
+        "db_name": pg["pg_dbname"],
+        "pg_ro_user": pg["pg_user"],
+        "pg_ro_password": pg["pg_password"],
+    })
+    typer.echo(f"  → unlocked PostgreSQL: host={pg['pg_host']} db={pg['pg_dbname']} user={pg['pg_user']}")
+
+    for name, fn in [
+        ("scenario 3", scenario3_postgres.solve),
+        ("scenario 4", scenario4_iceberg.solve),
+        ("scenario 5", scenario5_graph.solve),
+        ("scenario 6", scenario6_geocode.solve),
+    ]:
+        flag = fn(config=config, **common)
+        typer.echo(f"[{name}] Flag: {flag}")
+
+
+@app.command(name="generate-all")
+def generate_all_command(
     output_dir: Path = typer.Option(Path("output"), help="Output directory"),
     upload: bool = typer.Option(True, help="Upload Parquet to S3"),
 ) -> None:
-    """Run all scenarios in order."""
+    """Generate every scenario's data in order (mirror of solve-all)."""
     from data_generator.config import load_config
-    from data_generator.generators.scenario1_logs import generate_logs, upload_to_s3
-    from data_generator.generators.scenario2_parquet import generate_and_upload_parquet
-    from data_generator.generators.scenario3_postgres import populate_postgres
-    from data_generator.generators.scenario4_iceberg import generate_iceberg
-    from data_generator.generators.scenario5_graph import generate_graph
+    from data_generator.generators import generate_all
 
-    config = load_config()
-
-    typer.echo("Scenario 1: Generating library logs...")
-    zip_path = generate_logs(config, output_dir)
-    if upload:
-        upload_to_s3(config, zip_path)
-
-    typer.echo("Scenario 2: Generating Parquet files...")
-    generate_and_upload_parquet(config, output_dir, upload)
-
-    typer.echo("Scenario 3: Populating PostgreSQL...")
-    populate_postgres(config, upload=upload)
-
-    typer.echo("Scenario 4: Generating Iceberg badges table...")
-    generate_iceberg(config, output_dir, upload=upload)
-
-    typer.echo("Scenario 5: Generating network.duckdb...")
-    generate_graph(config, output_dir, upload=upload)
-
-    typer.echo("All scenarios generated.")
+    generate_all(load_config(), output_dir, upload=upload)

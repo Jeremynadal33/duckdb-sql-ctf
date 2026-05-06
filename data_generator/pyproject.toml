@@ -34,3 +34,6 @@ packages = ["src/data_generator"]
 
 [tool.mypy]
 ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+markers = ["integration: requires live PG and network (opt-in via CTF_INTEGRATION_TESTS=1)"]

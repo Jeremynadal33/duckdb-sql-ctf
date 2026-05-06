@@ -42,7 +42,7 @@ def _random_noise(length: int = 16) -> str:
     return "".join(random.choices(string.ascii_letters + string.digits, k=length))
 
 
-def _build_employee_flag(config: CTFConfig) -> str:
+def build_employee_flag(config: CTFConfig) -> str:
     return (
         f"FLAG{{pg_host={config.db_host},pg_port={config.db_port},"
         f"pg_user={config.pg_ro_user},pg_password={config.pg_ro_password},"
@@ -67,7 +67,7 @@ def _generate_employees(fake: Faker, config: CTFConfig) -> list[Employee]:
             department_id=1,  # Service Médical
             hire_date=quackie_hire,
             email="quackie.chan@bibliotheque-du-lac.fr",
-            metadata=json.dumps({"info": _build_employee_flag(config)}),
+            metadata=json.dumps({"info": build_employee_flag(config)}),
         )
     )
 

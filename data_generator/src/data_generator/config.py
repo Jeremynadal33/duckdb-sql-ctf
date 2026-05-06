@@ -56,24 +56,6 @@ def _get_tf_output_raw(name: str, terraform_dir: Path) -> str:
     return _run_terraform(["output", "-raw", name], terraform_dir)
 
 
-def dev_config() -> CTFConfig:
-    """Config factice pour le développement local sans infrastructure AWS."""
-    return CTFConfig(
-        db_endpoint="localhost:5432",
-        db_name="ctfdb",
-        pg_master_user="ctfadmin",
-        pg_master_password="dev-password",
-        pg_ro_user="ctfplayer",
-        pg_ro_password="dev-ro-password",
-        s3_bucket_name="duckdb-sql-ctf-dev",
-        iam_access_key_id="AKIAIOSFODNN7EXAMPLE",
-        iam_secret_access_key="dev-secret-key",
-        flag_scenario4="FLAG{s3://duckdb-sql-ctf-dev/data/network.duckdb}",
-        flag_scenario5="FLAG{cellule_anti_criminelle_mission_accomplie}",
-        flag_scenario6="FLAG{check sur la carte il est dans le coin coin}",
-    )
-
-
 def load_config(terraform_dir: Path | None = None) -> CTFConfig:
     """Load CTF configuration from terraform outputs."""
     if terraform_dir is None:

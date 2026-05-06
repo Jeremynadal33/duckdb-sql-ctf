@@ -8,7 +8,7 @@ import pytest
 from data_generator.constants import QUACKIE_CHAN_BADGE_ID, QUACKIE_CHAN_EMPLOYEE_ID
 from data_generator.generators.scenario2_parquet import (
     NUM_EMPLOYEES,
-    _build_employee_flag,
+    build_employee_flag,
     generate_parquet,
 )
 
@@ -22,7 +22,7 @@ def _read_chunked_table(output_dir: Path, table_name: str) -> pa.Table:
 
 class TestFlagParts:
     def test_full_flag_in_employee(self, fake_config):
-        flag = _build_employee_flag(fake_config)
+        flag = build_employee_flag(fake_config)
         assert flag.startswith("FLAG{")
         assert flag.endswith("}")
         assert f"pg_host={fake_config.db_host}" in flag

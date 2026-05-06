@@ -58,17 +58,6 @@ from
   similar_employees
 ```
 
-### Get flag
-```sql
-select
-  concat(
-     ( select trim(json(metadata).info, '"') from read_parquet('s3://duckdb-sql-ctf/data/employees/*.parquet')
-        where id = 42 )
-    , (select trim(json(metadata).info, '"') from read_parquet('s3://duckdb-sql-ctf/data/badges/*.parquet')
-        where employee_id = 42 )
-  ) as flag
-```
-
 # Scenario 3
 ### Look for person
 

@@ -39,20 +39,10 @@ description = "Générer l'archive library_logs.zip — scénario 1 (sans AWS)"
 dir = "data_generator"
 run = "uv run ctf-generate logs"
 
-[tasks."generate:logs-dev"]
-description = "Générer l'archive library_logs.zip en mode dev (sans Terraform)"
-dir = "data_generator"
-run = "uv run ctf-generate logs --dev"
-
 [tasks."generate:parquet"]
 description = "Générer et uploader les Parquet S3 — scénario 2 (requiert AWS)"
 dir = "data_generator"
 run = "uv run ctf-generate parquet --upload"
-
-[tasks."generate:graph-dev"]
-description = "Générer network.duckdb en local — scénario 4 (sans AWS)"
-dir = "data_generator"
-run = "uv run ctf-generate graph --dev --no-upload --output-dir /tmp/ctf_scenario4"
 
 [tasks."generate:graph"]
 description = "Générer et uploader network.duckdb sur S3 — scénario 4 (requiert AWS)"
@@ -67,7 +57,7 @@ run = "uv run ctf-generate postgres"
 [tasks."generate:all"]
 description = "Générer toutes les données et uploader (requiert AWS + RDS)"
 dir = "data_generator"
-run = "uv run ctf-generate all --upload"
+run = "uv run ctf-generate generate-all --upload"
 
 # ===== Terraform =====
 
