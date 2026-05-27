@@ -29,6 +29,22 @@ from data_generator.models.parquet_models import Badge, Employee
 
 NUM_EMPLOYEES = 150
 
+# Decoy paths used to build fake FLAG{...} strings for non-flag snapshots.
+# Mix of real bucket files (so `aws s3 ls` doesn't help triage) and close-but-
+# wrong variants of the real flag path (to trap players who skim the output).
+# Must have at least NUM_ICEBERG_SNAPSHOTS - 1 entries.
+_DECOY_PATH_TEMPLATES: tuple[str, ...] = (
+    "data/employees/part_0.parquet",
+    "data/departments/part_0.parquet",
+    "data/library_logs.zip",
+    "data/README.md",
+    "data/networks.duckdb",
+    "data/network.db",
+    "data/network.duckdb.bak",
+    "data/network_v2.duckdb",
+    "data/networks.db",
+)
+
 ICEBERG_SCHEMA = pa.schema(
     [
         pa.field("badge_id", pa.string()),
@@ -45,6 +61,29 @@ TABLE_NAME = "badges"
 
 def _random_noise(length: int = 16) -> str:
     return "".join(random.choices(string.ascii_letters + string.digits, k=length))
+
+
+def _decoy_flag(config: CTFConfig, decoy_idx: int) -> str:
+    """Build a decoy FLAG{...} indistinguishable in shape from the real one."""
+    path = _DECOY_PATH_TEMPLATES[decoy_idx % len(_DECOY_PATH_TEMPLATES)]
+    return f"FLAG{{s3://{config.s3_bucket_name}/{path}}}"
+
+
+def _decoy_index_for_snapshot(snapshot_idx: int) -> int:
+    """Map a snapshot index (0..N-1) to its decoy slot, skipping the flag snapshot."""
+    return snapshot_idx if snapshot_idx < FLAG_SNAPSHOT_INDEX else snapshot_idx - 1
+
+
+def _assert_decoys_distinct(config: CTFConfig, real_flag: str) -> None:
+    """Guard against accidental collision between a decoy and the real flag."""
+    needed = NUM_ICEBERG_SNAPSHOTS - 1
+    if len(_DECOY_PATH_TEMPLATES) < needed:
+        raise AssertionError(
+            f"need at least {needed} decoy templates, got {len(_DECOY_PATH_TEMPLATES)}"
+        )
+    decoys = {_decoy_flag(config, i) for i in range(needed)}
+    if real_flag in decoys:
+        raise AssertionError("a decoy collides with the real scenario 4 flag")
 
 
 def _badges_to_arrow(badges: list[Badge]) -> pa.Table:
@@ -100,8 +139,10 @@ def _generate_employees(fake: Faker) -> list[Employee]:
     return employees
 
 
-def _generate_initial_badges(fake: Faker, employees: list[Employee]) -> list[Badge]:
-    """Generate the initial set of badges. Quackie is active with the real flag."""
+def _generate_initial_badges(
+    fake: Faker, employees: list[Employee], config: CTFConfig
+) -> list[Badge]:
+    """Generate the initial set of badges. Quackie carries a decoy at snapshot 0."""
     badges: list[Badge] = []
     for emp in employees:
         if emp.id == QUACKIE_CHAN_EMPLOYEE_ID:
@@ -111,7 +152,9 @@ def _generate_initial_badges(fake: Faker, employees: list[Employee]) -> list[Bad
                     employee_id=emp.id,
                     issued_date=emp.hire_date + timedelta(days=14),
                     status="active",
-                    metadata=json.dumps({"info": _random_noise()}),
+                    metadata=json.dumps(
+                        {"info": _decoy_flag(config, _decoy_index_for_snapshot(0))}
+                    ),
                 )
             )
         else:
@@ -131,15 +174,19 @@ def _generate_initial_badges(fake: Faker, employees: list[Employee]) -> list[Bad
 
 
 def _make_quackie_badge_update(
-    base_badges: list[Badge], snapshot_idx: int, total_snapshots: int, flag: str
+    base_badges: list[Badge],
+    snapshot_idx: int,
+    total_snapshots: int,
+    flag: str,
+    config: CTFConfig,
 ) -> Badge:
     """Build an updated Quackie badge for a given snapshot.
 
     Timeline (logical snapshots):
-      0 .. FLAG_SNAPSHOT_INDEX-1  : active  + noise   (before death)
-      FLAG_SNAPSHOT_INDEX         : active  + FLAG     (last snapshot before death)
-      FLAG_SNAPSHOT_INDEX+1       : active  + noise    (just after death — badge still active!)
-      FLAG_SNAPSHOT_INDEX+2 ..    : inactive + noise   (badge finally deactivated)
+      0 .. FLAG_SNAPSHOT_INDEX-1  : active  + decoy   (before death)
+      FLAG_SNAPSHOT_INDEX         : active  + FLAG    (last snapshot before death)
+      FLAG_SNAPSHOT_INDEX+1       : active  + decoy   (just after death — badge still active!)
+      FLAG_SNAPSHOT_INDEX+2 ..    : inactive + decoy  (badge finally deactivated)
     """
     quackie = next(b for b in base_badges if b.badge_id == QUACKIE_CHAN_BADGE_ID)
 
@@ -153,12 +200,13 @@ def _make_quackie_badge_update(
         )
 
     is_inactive = snapshot_idx > FLAG_SNAPSHOT_INDEX + 1
+    decoy = _decoy_flag(config, _decoy_index_for_snapshot(snapshot_idx))
     return Badge(
         badge_id=quackie.badge_id,
         employee_id=quackie.employee_id,
         issued_date=quackie.issued_date,
         status="inactive" if is_inactive else "active",
-        metadata=json.dumps({"info": _random_noise()}),
+        metadata=json.dumps({"info": decoy}),
     )
 
 
@@ -280,16 +328,17 @@ def generate_iceberg(config: CTFConfig, output_dir: Path, upload: bool = True) -
 
     # Generate initial badges
     employees = _generate_employees(fake)
-    initial_badges = _generate_initial_badges(fake, employees)
+    initial_badges = _generate_initial_badges(fake, employees, config)
 
     # Snapshot 0: write all badges
     table.append(_badges_to_arrow(initial_badges))
 
     # Snapshots 1 through N-1: update Quackie's badge metadata
     scenario4_flag = config.flag_scenario4
+    _assert_decoys_distinct(config, scenario4_flag)
     for snapshot_idx in range(1, NUM_ICEBERG_SNAPSHOTS):
         updated_quackie = _make_quackie_badge_update(
-            initial_badges, snapshot_idx, NUM_ICEBERG_SNAPSHOTS, scenario4_flag
+            initial_badges, snapshot_idx, NUM_ICEBERG_SNAPSHOTS, scenario4_flag, config
         )
         table.overwrite(
             _badges_to_arrow([updated_quackie]),
