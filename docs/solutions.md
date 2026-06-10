@@ -81,8 +81,8 @@ WITH nominatim_request AS (
       },          
       params => MAP {
         'format': 'geocodejson',
-        'lat': '48.88974',                                                                                                                                                                                                                      
-        'lon': '2.38209',
+        'lat': '44.883994690921455',                                                                                                                                                                                                                      
+        'lon': '-0.5783725032146239',
         'layer': 'address'                                                                                                                                                                                                                          
       }            
     ) AS response
@@ -97,7 +97,7 @@ WITH nominatim_request AS (
 ### Look for city info
 
 ```sql
-select * from "postgres_db"."public"."city_information" where city_name = 'Paris'
+select * from "postgres_db"."public"."city_information" where city_name = 'Bordeaux'
 ```
 
 # Scenario 4
@@ -105,7 +105,7 @@ select * from "postgres_db"."public"."city_information" where city_name = 'Paris
 SELECT * FROM iceberg_scan(                                                                                             
       '/Users/jeremy.nadal/repos/perso/duckdb-sql-ctf/data_generator/output/iceberg_warehouse/badges/badges'
       , allow_moved_paths = true
-      , snapshot_from_timestamp = TIMESTAMP '2026-04-27 00:00:00'
+      , snapshot_from_timestamp = TIMESTAMP '2026-05-11 00:00:00'
   )
   where badge_id = 'BADGE-0042'
 ```

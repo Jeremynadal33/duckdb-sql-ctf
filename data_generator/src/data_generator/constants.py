@@ -126,38 +126,38 @@ QUACKIE_CHAN_BADGE_ID = "BADGE-0042"
 # Date of the big heist
 # Update the following constants to get a more realistic scenario
 # Like target date to the day of the ctf, target city to where the ctf is given, etc.
-TARGET_DATE = date(2026, 5, 27)
+TARGET_DATE = date(2026, 6, 10)
 QUACKIE_DEATH_DATE = TARGET_DATE - timedelta(days=30)
 
 # ── Decoy / scène (où Quackie habite et a été tuée) ──
 # Quand le CTF est donné à Bordeaux : decoy = Paris.
 # Quand le CTF est donné ailleurs   : decoy = Bordeaux.
 
-# Bibliothèque (Bibliothèque François-Mitterrand pour Paris) — point de départ (scénario 1)
-LIBRARY_CITY = "Paris"
-LIBRARY_LAT = 48.83323
-LIBRARY_LON = 2.37653
+# Bibliothèque (proche Lac de Bordeaux) — point de départ (scénario 1)
+LIBRARY_CITY = "Bordeaux"
+LIBRARY_LAT = 44.87383720544609
+LIBRARY_LON = -0.5728187300381997
 
-# Archives de Paris (18 bd Sérurier, 75019) — registres nationaux (scénario 3)
-ARCHIVES_CITY = "Paris"
-ARCHIVES_LAT = 48.88210
-ARCHIVES_LON = 2.40140
+# Archives Bordeaux Métropole — registres nationaux (scénario 3)
+ARCHIVES_CITY = "Bordeaux"
+ARCHIVES_LAT = 44.847105194415995
+ARCHIVES_LON = -0.5539175146997978
 
-# Mairie de Paris Centre — informations administratives (scénario 3)
-CITY_HALL_CITY = "Paris"
-CITY_HALL_LAT = 48.86386
-CITY_HALL_LON = 2.36258
+# Hôtel de Ville (Palais Rohan) — informations administratives (scénario 3)
+CITY_HALL_CITY = "Bordeaux"
+CITY_HALL_LAT = 44.84003190271778
+CITY_HALL_LON = -0.5788558745417992
 
-# Domicile de Quackie Chan — victime (Baignade estivale, Bassin de la Villette)
-QUACKIE_CITY = "Paris"
-QUACKIE_LAT = 48.88974
-QUACKIE_LON = 2.38209
+# Domicile de Quackie Chan — victime (près du Lac de Bordeaux)
+QUACKIE_CITY = "Bordeaux"
+QUACKIE_LAT = 44.883994690921455
+QUACKIE_LON = -0.5783725032146239
 
 # ── Planque finale — où le CTF se déroule (scénarios 5/6/7) ──
-# Ippon Technologies, 44 Allées de Tourny, 33000 Bordeaux
-TARGET_CITY = "Bordeaux"
-TARGET_LAT = 44.844259
-TARGET_LON = -0.576987
+# 43 avenue de la Grande Armée, 75116 Paris
+TARGET_CITY = "Paris"
+TARGET_LAT = 48.8753718
+TARGET_LON = 2.2889240
 
 # Alias utilisés dans les anciens générateurs
 DECOY_CITY = LIBRARY_CITY
