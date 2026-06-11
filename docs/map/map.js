@@ -39,9 +39,9 @@ const LOCATIONS = [
   },
   {
     unlockAfter: 6,
-    lat: C.target?.lat ?? 48.8753718, lon: C.target?.lon ?? 2.2889240,
+    lat: C.target?.lat ?? 50.6325380, lon: C.target?.lon ?? 3.0781436,
     label: 'Domicile de Hugh Quackman',
-    sublabel: C.target?.city ?? 'Paris',
+    sublabel: C.target?.city ?? 'Lille',
     note: 'Adresse du suspect final. Il était parmis nous depuis le début, surveiller bien votre entourage !',
     type: 'suspect',
   },

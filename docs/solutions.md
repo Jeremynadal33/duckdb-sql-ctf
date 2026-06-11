@@ -105,7 +105,7 @@ select * from "postgres_db"."public"."city_information" where city_name = 'Borde
 SELECT * FROM iceberg_scan(                                                                                             
       '/Users/jeremy.nadal/repos/perso/duckdb-sql-ctf/data_generator/output/iceberg_warehouse/badges/badges'
       , allow_moved_paths = true
-      , snapshot_from_timestamp = TIMESTAMP '2026-05-11 00:00:00'
+      , snapshot_from_timestamp = TIMESTAMP '2026-05-13 00:00:00'
   )
   where badge_id = 'BADGE-0042'
 ```
