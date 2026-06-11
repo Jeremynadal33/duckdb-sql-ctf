@@ -52,6 +52,7 @@ def make_duckdb(
         )
 
     if pg:
+        con.execute("SET pg_connection_limit = 1")
         con.execute(
             f"ATTACH 'host={config.db_host} port={config.db_port} "
             f"dbname={config.db_name} user={config.pg_ro_user} "

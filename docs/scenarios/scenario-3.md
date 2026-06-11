@@ -14,15 +14,20 @@ L'identité de l'employé est confirmée. Grâce aux accréditations récupéré
 ## Objectifs
 
 1. Se connecter à PostgreSQL depuis DuckDB
-2. Retrouver les informations complètes du suspect
-3. Déterminer sa **ville** via géocodage inversé (Nominatim).
+2. Jouer la commande suivante pour ne pas surcharger la base ```SET pg_connection_limit = 1;```
+3. Retrouver les informations complètes du suspect
+4. Déterminer sa **ville** via géocodage inversé (Nominatim).
 
 ## Indices
 
 ### Indice 1 — Se connecter à PostgreSQL
 
+> La base est partagée par toute la salle. Gardez `SET pg_connection_limit = 1;`
+> pour limiter le nombre de connexions ouvertes par votre session.
+
 ```sql
 INSTALL postgres; LOAD postgres;
+SET pg_connection_limit = 1;
 ATTACH 'host=... port=5432 dbname=... user=... password=...'
     AS ctfdb (TYPE POSTGRES);
 ```

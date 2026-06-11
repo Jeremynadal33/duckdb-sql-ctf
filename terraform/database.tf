@@ -5,6 +5,40 @@ resource "aws_db_subnet_group" "ctf" {
   tags = { Name = "ctf-db-subnet-group" }
 }
 
+resource "aws_db_parameter_group" "ctf" {
+  name   = "ctf-db-pg16"
+  family = "postgres16"
+
+  parameter {
+    name         = "max_connections"
+    value        = "200"
+    apply_method = "pending-reboot" # static parameter, applied at instance creation
+  }
+
+  # Reap dead client connections fast (closed laptops, killed notebook kernels)
+  # so abandoned sessions don't accumulate and exhaust max_connections during a
+  # session. Defaults leave them lingering for ~2h. Probes only drop genuinely
+  # gone clients — sessions that are idle but alive stay connected.
+  parameter {
+    name  = "tcp_keepalives_idle"
+    value = "300"
+  }
+  parameter {
+    name  = "tcp_keepalives_interval"
+    value = "30"
+  }
+  parameter {
+    name  = "tcp_keepalives_count"
+    value = "5"
+  }
+  parameter {
+    name  = "idle_in_transaction_session_timeout"
+    value = "300000" # 5 min, in ms
+  }
+
+  tags = { Name = "ctf-db-pg16" }
+}
+
 resource "aws_db_instance" "ctf" {
   identifier     = "ctf-db"
   engine         = "postgres"
@@ -20,6 +54,7 @@ resource "aws_db_instance" "ctf" {
 
   db_subnet_group_name   = aws_db_subnet_group.ctf.name
   vpc_security_group_ids = [aws_security_group.db.id]
+  parameter_group_name   = aws_db_parameter_group.ctf.name
   publicly_accessible    = true
   skip_final_snapshot    = true
 

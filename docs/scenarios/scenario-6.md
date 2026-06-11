@@ -18,4 +18,6 @@ L'enquête touche à sa fin, il faut maintenant trouver où se cache Hugh Quackm
 
 ### Indice 1 : Refaire le scénario 3
 
-Refaire les étapes en cherchant Hugh Quackman
+Refaire les étapes en cherchant Hugh Quackman.
+
+> Pensez à conserver `SET pg_connection_limit = 1;` lors de la reconnexion à PostgreSQL.
