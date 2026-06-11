@@ -30,7 +30,7 @@ INSTALL iceberg; LOAD iceberg;
 ### Indice 2 — Scanner la table (dernier snapshot)
 
 ```sql
-SELECT * FROM iceberg_scan('s3://bucket/data/badges/'
+SELECT * FROM iceberg_scan('s3://duckdb-sql-ctf/data/badges'
 , allow_moved_paths = true);
 ```
 
@@ -39,7 +39,7 @@ Vous remarquerez que le badge de Quackie est **inactive** — les métadonnées 
 ### Indice 3 — Lister les snapshots
 
 ```sql
-SELECT * FROM iceberg_snapshots('s3://bucket/data/badges/');
+SELECT * FROM iceberg_snapshots('s3://duckdb-sql-ctf/data/badges');
 ```
 
 Comparez les dates des snapshots avec la date du décès mentionnée dans l'article du Canard Enchaîné.
@@ -48,7 +48,7 @@ Comparez les dates des snapshots avec la date du décès mentionnée dans l'arti
 
 ```sql
 SELECT * FROM iceberg_scan(
-    's3://bucket/data/badges/',
+    's3://duckdb-sql-ctf/data/badges',
     snapshot_from_timestamp => TIMESTAMP '<date avant la mort de Quackie Chan>',
     allow_moved_paths = true
 )

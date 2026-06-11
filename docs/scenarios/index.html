@@ -145,7 +145,7 @@
       <p class="submit-modal-desc">Exécutez la requête suivante depuis DuckDB pour soumettre votre réponse.</p>
       <pre><code>INSTALL httpfs; LOAD httpfs;
 
-CREATE SECRET my_s3_secret (
+CREATE OR REPLACE SECRET my_s3_secret (
     TYPE S3,
     KEY_ID '&lt;aws_access_key_id&gt;',
     SECRET '&lt;aws_secret_access_key&gt;',

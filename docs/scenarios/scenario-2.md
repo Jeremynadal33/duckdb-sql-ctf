@@ -4,6 +4,7 @@ label: Archives
 titre: Les Archives du Lac
 techniques:
     - Explore S3 bucket : https://duckdb.org/docs/current/sql/functions/pattern_matching#glob-function-to-find-filenames
+    - read_text : https://duckdb.org/docs/lts/guides/file_formats/read_file
     - read_parquet : https://duckdb.org/docs/data/parquet/overview.html
     - jaro_winkler_similarity : https://duckdb.org/docs/current/sql/functions/text#jaro_winkler_similaritys1-s2-score_cutoff
 ---
@@ -13,7 +14,7 @@ Grâce aux credentials (*AWS*) du scénario précédent, vous accédez aux archi
 ## Objectifs
 
 1. Configurer l'accès S3 dans DuckDB
-2. Le bucket contient un dossier `data` dans lequel se trouve un `README.md`. Allez y jeter un oeil !
+2. Le bucket contient un dossier `data` dans lequel se trouve un `README.md`. Allez y jeter un oeil ! (N'hésitez pas à prendre l'indice 1)
 3. Retrouver l'identité via **fuzzy matching**
 
 ## Indices
