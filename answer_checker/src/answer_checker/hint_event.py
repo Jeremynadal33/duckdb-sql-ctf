@@ -32,7 +32,7 @@ def hint_event_handler(event: dict, context: object) -> dict:
     except (json.JSONDecodeError, TypeError):
         return _response(400, {"error": "invalid_json"})
 
-    pseudo = (body.get("pseudo") or "").strip()
+    pseudo = (body.get("pseudo") or "").strip().lower()
     scenario = body.get("scenario")
     hint_title = (body.get("hint_title") or "").strip()
 

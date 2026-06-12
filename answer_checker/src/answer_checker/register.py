@@ -34,6 +34,7 @@ def _response(status_code: int, body: dict) -> dict:
 
 
 def _pseudo_exists(pseudo: str) -> bool:
+    pseudo = pseudo.strip().lower()
     config: dict[str, str | bool | int | float | list[str]] = (
         {"extension_directory": EXTENSION_DIR} if EXTENSION_DIR else {}
     )

@@ -41,6 +41,7 @@ def lambda_handler(event: dict, context: object) -> dict:
         return {"status": "rejected", "reason": "schema_mismatch", "key": key}
 
     pseudo, scenario, flag = extract_submission(local_path)
+    pseudo = pseudo.strip().lower()
     logger.info("Submission from pseudo=%s, scenario=%d", pseudo, scenario)
 
     if not _pseudo_exists(pseudo):
