@@ -11,11 +11,18 @@ from data_generator.config import CTFConfig
 
 def generate_all(config: CTFConfig, output_dir: Path, upload: bool = True) -> None:
     """Run every scenario generator in order. Optionally pushes to S3/RDS."""
+    from data_generator.generators.scenario0_csv import generate_csv
+    from data_generator.generators.scenario0_csv import upload_to_s3 as upload_csv
     from data_generator.generators.scenario1_logs import generate_logs, upload_to_s3
     from data_generator.generators.scenario2_parquet import generate_and_upload_parquet
     from data_generator.generators.scenario3_postgres import populate_postgres
     from data_generator.generators.scenario4_iceberg import generate_iceberg
     from data_generator.generators.scenario5_graph import generate_graph
+
+    typer.echo("Scenario 0: Generating buildings CSV...")
+    csv_path = generate_csv(config, output_dir)
+    if upload:
+        upload_csv(config, csv_path)
 
     typer.echo("Scenario 1: Generating library logs...")
     zip_path = generate_logs(config, output_dir)

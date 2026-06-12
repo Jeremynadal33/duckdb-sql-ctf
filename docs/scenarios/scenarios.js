@@ -29,7 +29,7 @@ function _updateAdminActivateBtn(show) {
 // ── Unlock state ──────────────────────────────────────────────────
 
 function getUnlockedFromState(pseudo) {
-  const unlocked = new Set([1]);
+  const unlocked = new Set([0, 1]); // 0 = tutoriel, toujours débloqué
   if (!pseudo) return unlocked;
   if (typeof isAdminPseudo === 'function' && isAdminPseudo(pseudo)) {
     for (let i = 1; i <= SCENARIO_FILES.length + 1; i++) unlocked.add(i);
@@ -95,6 +95,33 @@ function buildSteps(md) {
     .join('');
 }
 
+// Add a "copier" button to every <pre> code block inside `root`.
+function addCopyButtons(root) {
+  if (!root) return;
+  root.querySelectorAll('pre').forEach(pre => {
+    if (pre.querySelector('.copy-btn')) return;
+    const code = pre.querySelector('code');
+    if (!code) return;
+    pre.style.position = 'relative';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'copy-btn';
+    btn.textContent = 'copier';
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      try {
+        await navigator.clipboard.writeText(code.textContent);
+        btn.textContent = 'copié ✓';
+        btn.classList.add('copied');
+      } catch {
+        btn.textContent = 'erreur';
+      }
+      setTimeout(() => { btn.textContent = 'copier'; btn.classList.remove('copied'); }, 1500);
+    });
+    pre.appendChild(btn);
+  });
+}
+
 function mdToPanel(raw) {
   const fmMatch = raw.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
   if (!fmMatch) return `<div class="sc-body"><p>Erreur de format</p></div>`;
@@ -125,6 +152,12 @@ function mdToPanel(raw) {
   const contextHTML  = marked.parse((sections['__context__'] || []).join('\n').trim());
   const stepsHTML    = buildSteps((sections['Objectifs'] || []).join('\n'));
   const hintsHTML    = buildHints((sections['Indices'] || []).join('\n'));
+  const objectifsBlock = stepsHTML
+    ? `<div class="sc-section">OBJECTIFS</div><ol class="sc-steps">${stepsHTML}</ol>`
+    : '';
+  const indicesBlock = hintsHTML
+    ? `<div class="sc-section">INDICES</div><div class="sc-hints">${hintsHTML}</div>`
+    : '';
   return `
     <div class="sc-aside">
       <div class="sc-index">${numStr}</div>
@@ -136,16 +169,14 @@ function mdToPanel(raw) {
     <div class="sc-body">
       <h2 class="sc-title">${meta.titre || ''}</h2>
       <div class="sc-context">${contextHTML}</div>
-      <div class="sc-section">OBJECTIFS</div>
-      <ol class="sc-steps">${stepsHTML}</ol>
-      <div class="sc-section">INDICES</div>
-      <div class="sc-hints">${hintsHTML}</div>
+      ${objectifsBlock}
+      ${indicesBlock}
     </div>`;
 }
 
 // ── Dynamic scenario loading ──────────────────────────────────────
 
-const SCENARIO_FILES = [1, 2, 3, 4, 5, 6, 7].map(n => `scenario-${n}.md`);
+const SCENARIO_FILES = [0, 1, 2, 3, 4, 5, 6, 7].map(n => `scenario-${n}.md`);
 
 let _loadedRaw = null; // cache the markdown files (no need to re-fetch)
 
@@ -254,8 +285,10 @@ async function loadScenarios() {
     })
   );
 
-  // Epilogue + mission badge when all flags are validated
-  const allSolved     = unlocked.has(SCENARIO_FILES.length + 1);
+  // Epilogue + mission badge when all flags are validated.
+  // Seuil calculé sur le numéro réel max (le tutoriel 0 ne compte pas).
+  const maxNum        = Math.max(...scenarios.map(s => Number(s.meta.numero || 0)));
+  const allSolved     = unlocked.has(maxNum + 1);
   const epiloguePanel = document.getElementById('epilogue-panel');
 
   if (allSolved) {
@@ -305,6 +338,8 @@ async function loadScenarios() {
     });
   });
 
+  addCopyButtons(panelsContainer);
+
   // Restore active scenario if still unlocked, else show first
   const targetScenario = (activeScenario && unlocked.has(activeScenario))
     ? activeScenario
@@ -346,6 +381,7 @@ async function checkAndUpdate() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+  addCopyButtons(document.getElementById('submit-overlay'));
   await loadScenarios();
 
   window.addEventListener('ctf:data-updated', (e) => {

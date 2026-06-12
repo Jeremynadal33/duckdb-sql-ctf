@@ -10,6 +10,25 @@ app = typer.Typer(name="ctf-generate", help="Generate data for DuckDB SQL CTF")
 
 
 @app.command()
+def csv(
+    output_dir: Path = typer.Option(
+        Path("output"), help="Output directory for the CSV file"
+    ),
+    upload: bool = typer.Option(True, help="Upload CSV to S3 after generation"),
+) -> None:
+    """Scenario 0 (tutorial): Generate the public buildings.csv."""
+    from data_generator.config import load_config
+    from data_generator.generators.scenario0_csv import generate_csv, upload_to_s3
+
+    config = load_config()
+    path = generate_csv(config, output_dir)
+    typer.echo(f"Generated: {path}")
+    if upload:
+        upload_to_s3(config, path)
+        typer.echo("Uploaded to S3.")
+
+
+@app.command()
 def logs(
     output_dir: Path = typer.Option(
         Path("output"), help="Output directory for zip file"

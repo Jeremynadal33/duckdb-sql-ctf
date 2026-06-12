@@ -51,6 +51,13 @@ resource "aws_s3_bucket_policy" "public_results" {
         Resource  = "${aws_s3_bucket.ctf.arn}/data/library_logs.zip"
       },
       {
+        Sid       = "PublicReadBuildings"
+        Effect    = "Allow"
+        Principal = "*"
+        Action    = "s3:GetObject"
+        Resource  = "${aws_s3_bucket.ctf.arn}/data/buildings.csv"
+      },
+      {
         Sid       = "PublicReadNetworkData"
         Effect    = "Allow"
         Principal = "*"
@@ -62,6 +69,12 @@ resource "aws_s3_bucket_policy" "public_results" {
 }
 
 # ── Answer files for the Lambda checker ──
+resource "aws_s3_object" "answer_scenario_0" {
+  bucket  = aws_s3_bucket.ctf.id
+  key     = "leaderboard/answers/scenario_0.txt"
+  content = local.flag_scenario0
+}
+
 resource "aws_s3_object" "answer_scenario_1" {
   bucket  = aws_s3_bucket.ctf.id
   key     = "leaderboard/answers/scenario_1.txt"

@@ -3,6 +3,9 @@ from datetime import date, timedelta
 AWS_REGION = "eu-west-1"
 FAKER_SEED = 42
 
+# Scénario 0 — tutoriel. Flag fixe, à garder identique à terraform/locals.tf (flag_scenario0).
+SCENARIO0_FLAG = "FLAG{que le meilleur canard gagne}"
+
 FIGURANT_NAMES = [
     "Quack Norris",
     "Quackamole",

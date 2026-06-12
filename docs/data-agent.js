@@ -84,6 +84,7 @@ async function _queryAll(conn, url) {
                timestamp AS solved_at
         FROM read_parquet('${url}')
         WHERE action = 'FLAG_SUBMISSION_SUCCESS'
+          AND CAST(json_extract_string(value, '$.scenario') AS INTEGER) <> 0
       ),
       dedup AS (
         SELECT pseudo, scenario, MIN(solved_at) AS solved_at
