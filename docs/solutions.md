@@ -81,8 +81,8 @@ WITH nominatim_request AS (
       },          
       params => MAP {
         'format': 'geocodejson',
-        'lat': '44.883994690921455',                                                                                                                                                                                                                      
-        'lon': '-0.5783725032146239',
+        'lat': '48.88974',                                                                                                                                                                                                                      
+        'lon': '2.38209',
         'layer': 'address'                                                                                                                                                                                                                          
       }            
     ) AS response
@@ -97,7 +97,7 @@ WITH nominatim_request AS (
 ### Look for city info
 
 ```sql
-select * from "postgres_db"."public"."city_information" where city_name = 'Bordeaux'
+select * from "postgres_db"."public"."city_information" where city_name = 'Paris'
 ```
 
 # Scenario 4

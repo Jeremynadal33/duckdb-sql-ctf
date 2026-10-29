@@ -136,25 +136,25 @@ QUACKIE_DEATH_DATE = TARGET_DATE - timedelta(days=30)
 # Quand le CTF est donné à Bordeaux : decoy = Paris.
 # Quand le CTF est donné ailleurs   : decoy = Bordeaux.
 
-# Bibliothèque (proche Lac de Bordeaux) — point de départ (scénario 1)
-LIBRARY_CITY = "Bordeaux"
-LIBRARY_LAT = 44.87383720544609
-LIBRARY_LON = -0.5728187300381997
+# Bibliothèque François-Mitterrand (BNF Tolbiac) — point de départ (scénario 1)
+LIBRARY_CITY = "Paris"
+LIBRARY_LAT = 48.83323
+LIBRARY_LON = 2.37653
 
-# Archives Bordeaux Métropole — registres nationaux (scénario 3)
-ARCHIVES_CITY = "Bordeaux"
-ARCHIVES_LAT = 44.847105194415995
-ARCHIVES_LON = -0.5539175146997978
+# Archives de Paris — registres nationaux (scénario 3)
+ARCHIVES_CITY = "Paris"
+ARCHIVES_LAT = 48.88210
+ARCHIVES_LON = 2.40140
 
-# Hôtel de Ville (Palais Rohan) — informations administratives (scénario 3)
-CITY_HALL_CITY = "Bordeaux"
-CITY_HALL_LAT = 44.84003190271778
-CITY_HALL_LON = -0.5788558745417992
+# Mairie de Paris Centre — informations administratives (scénario 3)
+CITY_HALL_CITY = "Paris"
+CITY_HALL_LAT = 48.86386
+CITY_HALL_LON = 2.36258
 
-# Domicile de Quackie Chan — victime (près du Lac de Bordeaux)
-QUACKIE_CITY = "Bordeaux"
-QUACKIE_LAT = 44.883994690921455
-QUACKIE_LON = -0.5783725032146239
+# Domicile de Quackie Chan — victime (Bassin de la Villette)
+QUACKIE_CITY = "Paris"
+QUACKIE_LAT = 48.88974
+QUACKIE_LON = 2.38209
 
 # ── Planque finale — où le CTF se déroule (scénarios 5/6/7) ──
 # 1 Avenue du Dr Albert Schweitzer, 33400 Talence (CATIE)
