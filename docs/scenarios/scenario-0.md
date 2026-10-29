@@ -51,7 +51,7 @@ CREATE OR REPLACE SECRET my_s3_secret (
 
 COPY (
     SELECT '<pseudo>' AS pseudo, <N> AS scenario, 'FLAG{...}' AS flag
-) TO 's3://<bucket>/user-inputs/<pseudo>_scenario_<N>.parquet' (FORMAT PARQUET);
+) TO 's3://duckdb-sql-ctf/user-inputs/<pseudo>_scenario_<N>.parquet' (FORMAT PARQUET);
 ```
 
 Cette requête de soumission est toujours disponible dans le bouton <a href="#" onclick="openSubmitHelper(); return false;"><strong>GLOBAL HELPERS</strong></a>, en haut à droite de la page.
