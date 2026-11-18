@@ -1,4 +1,4 @@
-# LE CANARD ENCHAÎNÉ — 29 septembre 2026
+# LE CANARD ENCHAÎNÉ — 19 octobre 2026
 
 ---
 

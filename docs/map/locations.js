@@ -7,5 +7,5 @@ const LOCATION_COORDS = {
   archives:  { lat: 48.8821, lon: 2.4014, city: 'Paris' },
   city_hall: { lat: 48.86386, lon: 2.36258, city: 'Paris' },
   quackie:   { lat: 48.88974, lon: 2.38209, city: 'Paris' },
-  target:    { lat: 44.806022, lon: -0.6048438, city: 'Talence' },
+  target:    { lat: 43.6014373, lon: 1.4421029, city: 'Toulouse' },
 };

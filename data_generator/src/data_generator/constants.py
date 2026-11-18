@@ -129,7 +129,7 @@ QUACKIE_CHAN_BADGE_ID = "BADGE-0042"
 # Date of the big heist
 # Update the following constants to get a more realistic scenario
 # Like target date to the day of the ctf, target city to where the ctf is given, etc.
-TARGET_DATE = date(2026, 10, 29)
+TARGET_DATE = date(2026, 11, 18)
 QUACKIE_DEATH_DATE = TARGET_DATE - timedelta(days=30)
 
 # ── Decoy / scène (où Quackie habite et a été tuée) ──
@@ -157,10 +157,10 @@ QUACKIE_LAT = 48.88974
 QUACKIE_LON = 2.38209
 
 # ── Planque finale — où le CTF se déroule (scénarios 5/6/7) ──
-# 1 Avenue du Dr Albert Schweitzer, 33400 Talence (CATIE)
-TARGET_CITY = "Talence"
-TARGET_LAT = 44.8060220
-TARGET_LON = -0.6048438
+# 1 Place de la Bourse, 31000 Toulouse
+TARGET_CITY = "Toulouse"
+TARGET_LAT = 43.6014373
+TARGET_LON = 1.4421029
 
 # Alias utilisés dans les anciens générateurs
 DECOY_CITY = LIBRARY_CITY
