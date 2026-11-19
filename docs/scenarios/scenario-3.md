@@ -43,17 +43,33 @@ WHERE a.is_current = true;
 
 ### Indice 3 — Géocodage inversé avec Nominatim
 
+> Depuis DuckDB 2.0, l'extension `http_client` n'est plus dans le dépôt *community* mais
+> chez Query.Farm. Jouez ces commandes **une fois** pour l'installer :
+
 ```sql
-INSTALL http_client FROM community; LOAD http_client;
+SET allow_extension_repositories = 'allowed';
+CREATE EXTENSION REPOSITORY IF NOT EXISTS query_farm WITH PREFIX 'https://duckdb-extensions.query.farm';
+INSTALL http_client FROM query_farm;
+```
+
+> Puis, dans chaque session :
+
+```sql
+LOAD http_client FROM query_farm;
 WITH req AS (
     SELECT http_get(
         'https://nominatim.openstreetmap.org/reverse',
         headers => MAP { 'User-Agent': 'DuckDB-CTF/1.0', 'Accept': 'application/json' },
-        params  => MAP { 'format': 'geocodejson', 'lat': '35.6764', 'lon': '139.6500' }
+        params  => MAP { 'format': 'geocodejson', 'lat': '44.8378', 'lon': '-0.5792', 'layer': 'address' }
     ) AS response
 )
-SELECT response, json_extract_string(response->>'body', '$') AS city FROM req;
+SELECT
+    json_extract_string(response->>'body', '$.features[0].properties.geocoding.city') AS city,
+    json_extract_string(response->>'body', '$.features[0].properties.geocoding.label') AS address
+FROM req;
 ```
+
+> Avec DuckDB 1.x, `INSTALL http_client FROM community; LOAD http_client;` suffit.
 
 ### Indice 4 — Chercher des informations sur la ville
 
